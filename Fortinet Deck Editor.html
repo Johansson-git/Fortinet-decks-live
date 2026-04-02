@@ -187,7 +187,8 @@ body{font-family:'Segoe UI',sans-serif;background:#0a0e1a;color:#c8d0e0;display:
       <div class="editor-toolbar" style="border-radius:8px;margin-bottom:14px;">
         <span class="editor-badge">✏ Editor Mode</span>
         <div class="ed-divider"></div>
-        <button class="ed-btn" onclick="exportHTML()">⬇ Export HTML</button>
+        <button class="ed-btn" onclick="exportHTML()">⬇ Export Editor</button>
+        <button class="ed-btn" onclick="exportPresentation()" style="border-color:#22c9a0;color:#22c9a0;">▶ Export as Deck</button>
         <button class="ed-btn danger" onclick="resetToDefaults()">↺ Reset to Default</button>
         <span class="ed-hint">Changes auto-save in browser · Export to get a shareable file</span>
       </div>
@@ -745,6 +746,278 @@ function exportHTML() {
   var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'Fortinet Deck Editor.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Export as clean presentation deck
+// ─────────────────────────────────────────────────────────────────────
+function exportPresentation() {
+  var s = state;
+
+  function esc(t) { return (t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  function tip(n) { return 'showTip(event,\''+esc(n.title)+'\',\''+esc(n.subtitle)+'\',\'teal\')'; }
+
+  function nodes_teal(key) {
+    return (s.nodes[key]||[]).map(function(n){
+      return '<div class="node node-teal" onclick="'+tip(n)+'"><div class="nt">'+esc(n.title)+'</div><div class="ns">'+esc(n.subtitle)+'</div></div>';
+    }).join('\n');
+  }
+  function nodes_coral(key) {
+    return (s.nodes[key]||[]).map(function(n){
+      return '<div class="node node-coral" onclick="showTip(event,\''+esc(n.title)+'\',\''+esc(n.subtitle)+'\',\'coral\')"><div class="nt">'+esc(n.title)+'</div><div class="ns">'+esc(n.subtitle)+'</div></div>';
+    }).join('\n');
+  }
+  function nodes_indigo(key) {
+    return (s.nodes[key]||[]).map(function(n){
+      return '<div class="node node-indigo" onclick="showTip(event,\''+esc(n.title)+'\',\''+esc(n.subtitle)+'\',\'purple\')"><div class="nt">'+esc(n.title)+'</div><div class="ns">'+esc(n.subtitle)+'</div></div>';
+    }).join('\n');
+  }
+  function nodes_svc() {
+    return (s.nodes.svc||[]).map(function(n){
+      return '<div class="svc-card" onclick="showTip(event,\''+esc(n.title)+'\',\''+esc(n.subtitle)+'\',\'amber\')"><div class="nt">'+esc(n.title)+'</div><div class="ns">'+esc(n.subtitle)+'</div></div>';
+    }).join('\n');
+  }
+  function nodes_orch() {
+    return (s.nodes.orch||[]).map(function(n){
+      return '<div class="node node-fortisoc" onclick="showTip(event,\''+esc(n.title)+'\',\''+esc(n.subtitle)+'\',\'purple\')"><div class="nt">'+esc(n.title)+'</div><div class="ns">'+esc(n.subtitle)+'</div></div>';
+    }).join('\n');
+  }
+  function nodes_ti() {
+    return (s.nodes.ti||[]).map(function(n){
+      return '<div class="ti-node" onclick="showTip(event,\''+esc(n.title)+'\',\''+esc(n.subtitle)+'\',\'amber\')"><div class="nt">'+esc(n.title)+'</div><div class="ns">'+esc(n.subtitle)+'</div></div>';
+    }).join('\n');
+  }
+  function nodes_data() {
+    return (s.nodes.data||[]).map(function(n){
+      return '<div class="node" style="background:rgba(90,127,212,0.10);border-color:rgba(90,127,212,0.35);height:52px;display:flex;flex-direction:column;justify-content:center;align-items:center;" onclick="showTip(event,\''+esc(n.title)+'\',\''+esc(n.subtitle)+'\',\'blue\')"><div class="nt" style="color:#a0b8e8">'+esc(n.title)+'</div><div class="ns" style="color:#5a7fd4">'+esc(n.subtitle)+'</div></div>';
+    }).join('\n');
+  }
+
+  var html = '<!DOCTYPE html>\n<html>\n<head>\n<meta charset="utf-8">\n<style>\n'+
+'*{box-sizing:border-box;margin:0;padding:0;}\n'+
+'body{font-family:\'Segoe UI\',sans-serif;background:#0a0e1a;color:#c8d0e0;display:flex;height:100vh;overflow:hidden;}\n'+
+'#sidebar{width:240px;min-width:240px;background:#0d1525;border-right:1px solid #1e2d50;display:flex;flex-direction:column;transition:width 0.3s,min-width 0.3s;overflow:hidden;z-index:10;}\n'+
+'#sidebar.collapsed{width:48px;min-width:48px;}\n'+
+'.sb-header{display:flex;align-items:center;justify-content:space-between;padding:16px 14px;border-bottom:1px solid #1e2d50;flex-shrink:0;}\n'+
+'.sb-logo{display:flex;align-items:center;gap:10px;overflow:hidden;}\n'+
+'.sb-logo-icon{width:24px;height:24px;border-radius:6px;background:linear-gradient(135deg,#786ee6,#22c9a0);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;}\n'+
+'.sb-logo-text{font-size:11px;font-weight:700;color:#7a9de0;letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap;transition:opacity 0.2s;}\n'+
+'#sidebar.collapsed .sb-logo-text{opacity:0;}\n'+
+'.toggle-sb{background:none;border:none;color:#3a4a70;cursor:pointer;font-size:16px;padding:2px 4px;}\n'+
+'.toggle-sb:hover{color:#7a9de0;}\n'+
+'.nav-section{padding:12px 0;flex:1;overflow-y:auto;}\n'+
+'.nav-label{font-size:9px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#2a3a60;padding:0 14px 8px;white-space:nowrap;}\n'+
+'.nav-item{display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;transition:background 0.15s;position:relative;white-space:nowrap;overflow:hidden;}\n'+
+'.nav-item:hover{background:rgba(120,110,230,0.08);}\n'+
+'.nav-item.active{background:rgba(120,110,230,0.15);}\n'+
+'.nav-item.active::before{content:\'\';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:0 2px 2px 0;background:linear-gradient(to bottom,#786ee6,#22c9a0);}\n'+
+'.nav-icon{width:20px;height:20px;border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;}\n'+
+'.nav-text{font-size:12px;color:#8a9ab8;}\n'+
+'.nav-item.active .nav-text{color:#c4bfff;font-weight:600;}\n'+
+'.nav-badge{margin-left:auto;font-size:8px;font-weight:700;padding:1px 6px;border-radius:8px;}\n'+
+'.badge-live{background:rgba(22,190,140,0.15);color:#22c9a0;border:1px solid rgba(22,190,140,0.3);}\n'+
+'.sb-footer{padding:12px 14px;border-top:1px solid #1e2d50;font-size:10px;color:#2a3a60;}\n'+
+'#main{flex:1;overflow:hidden;position:relative;}\n'+
+'.panel{display:none;width:100%;height:100%;flex-direction:column;}\n'+
+'.panel.active{display:flex;}\n'+
+'.toggle-bar{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:14px 16px;background:#0a0e1a;border-bottom:1px solid #1e2d50;flex-shrink:0;}\n'+
+'.toggle-btn{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,0.04);border:1px solid #2a3550;border-radius:20px;padding:5px 12px;font-size:11px;font-weight:500;cursor:pointer;transition:background 0.2s,border-color 0.2s;color:#8a9ab8;}\n'+
+'.toggle-btn.active{color:#e0e8f8;}\n'+
+'.toggle-btn.active[data-key="ctrl"]{border-color:#d85a30;background:rgba(216,90,48,0.12);}\n'+
+'.toggle-btn.active[data-key="data"]{border-color:#5a7fd4;background:rgba(90,127,212,0.15);}\n'+
+'.toggle-btn.active[data-key="detect"]{border-color:#22c9a0;background:rgba(22,190,140,0.12);}\n'+
+'.toggle-btn.active[data-key="orch"]{border-color:#786ee6;background:rgba(120,110,230,0.15);}\n'+
+'.toggle-btn.active[data-key="ti"]{border-color:#d4850a;background:rgba(212,133,10,0.12);}\n'+
+'.toggle-btn.active[data-key="third"]{border-color:#8880cc;background:rgba(83,74,183,0.15);}\n'+
+'.toggle-btn.active[data-key="svc"]{border-color:#d4850a;background:rgba(212,133,10,0.12);}\n'+
+'.toggle-btn.active[data-key="managed"]{border-color:#1a9e78;background:rgba(15,110,86,0.15);}\n'+
+'.toggle-pip{width:8px;height:8px;border-radius:50%;flex-shrink:0;opacity:0.35;transition:opacity 0.2s;}\n'+
+'.toggle-btn.active .toggle-pip{opacity:1;}\n'+
+'#btn-all{border-color:#4a5a80;background:rgba(74,90,128,0.2);color:#e0e8f8;}\n'+
+'.divider{width:1px;background:#2a3550;margin:0 4px;}\n'+
+'.secops-body{flex:1;overflow-y:auto;padding:16px;}\n'+
+'.outer{max-width:1100px;margin:0 auto;}\n'+
+'.ecosystem-ring{border:1.5px dashed #3a4a70;border-radius:20px;padding:44px 20px 24px;position:relative;background:rgba(20,30,60,0.35);cursor:pointer;}\n'+
+'.ecosystem-badge{position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:#1e2d55;border:1px solid #3a4a70;color:#7a9de0;font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:3px 18px;border-radius:20px;white-space:nowrap;}\n'+
+'.outer-grid{display:grid;grid-template-columns:130px 150px 1fr;gap:16px;align-items:start;}\n'+
+'.right-side{display:flex;flex-direction:column;gap:12px;}\n'+
+'.top-row{display:grid;grid-template-columns:1fr 140px;gap:16px;align-items:start;}\n'+
+'.paired-layers{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;align-items:start;}\n'+
+'.ll{font-size:9px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:9px;}\n'+
+'.layer-managed{border-radius:12px;padding:11px 8px 13px;background:rgba(15,110,86,0.08);border:1px solid rgba(15,110,86,0.28);display:flex;flex-direction:column;gap:7px;}\n'+
+'.layer-managed .ll{color:#1a9e78;text-align:center;}\n'+
+'.layer-orch{border-radius:12px;padding:11px 13px 13px;background:rgba(120,110,230,0.10);border:1px solid rgba(120,110,230,0.30);}\n'+
+'.layer-orch .ll{color:#a09bef;}\n'+
+'.layer-detect{border-radius:12px;padding:11px 10px 13px;background:rgba(22,190,140,0.07);border:1px solid rgba(22,190,140,0.25);}\n'+
+'.layer-detect .ll{color:#22c9a0;}\n'+
+'.layer-ctrl{border-radius:12px;padding:11px 10px 13px;background:rgba(216,90,48,0.08);border:1px solid rgba(216,90,48,0.25);}\n'+
+'.layer-ctrl .ll{color:#e07050;}\n'+
+'.layer-third{border-radius:12px;padding:11px 10px 13px;background:rgba(83,74,183,0.07);border:1px solid rgba(83,74,183,0.28);}\n'+
+'.layer-third .ll{color:#8880cc;}\n'+
+'.svc-col{display:flex;flex-direction:column;}\n'+
+'.svc-col-label{font-size:9px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#d4850a;text-align:center;margin-bottom:10px;}\n'+
+'.svc-col-inner{border:1.5px solid rgba(212,133,10,0.4);border-radius:12px;background:rgba(212,133,10,0.05);display:flex;flex-direction:column;gap:10px;padding:12px 10px;}\n'+
+'.svc-card{background:rgba(212,133,10,0.10);border:1px solid #d4850a;border-radius:10px;padding:10px;text-align:center;cursor:pointer;transition:background 0.2s,transform 0.15s;}\n'+
+'.svc-card:hover{background:rgba(212,133,10,0.22);transform:scale(1.03);}\n'+
+'.svc-card .nt{color:#f0a830;font-size:12px;font-weight:600;}\n'+
+'.svc-card .ns{color:#b07020;font-size:10px;margin-top:3px;}\n'+
+'.resp-arrow{margin-top:12px;display:flex;flex-direction:column;align-items:flex-start;gap:5px;}\n'+
+'.resp-arrow-label{font-size:9px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#f4a080;}\n'+
+'.resp-arrow-track{display:flex;align-items:center;width:100%;}\n'+
+'.resp-arrow-head{color:#d85a30;font-size:13px;line-height:1;flex-shrink:0;}\n'+
+'.resp-arrow-line{flex:1;height:3px;background:linear-gradient(to left,#d85a30,rgba(216,90,48,0.15));border-radius:2px;position:relative;overflow:hidden;}\n'+
+'.resp-arrow-pulse{width:10px;height:10px;border-radius:50%;background:#f4a080;box-shadow:0 0 8px #d85a30;position:absolute;top:-3.5px;animation:respflow 1.8s ease-in-out infinite;}\n'+
+'@keyframes respflow{0%{right:0;opacity:0}10%{opacity:1}90%{opacity:1}100%{right:calc(100% - 10px);opacity:0}}\n'+
+'.ti-panel{display:flex;flex-direction:column;align-items:flex-start;padding-left:10px;}\n'+
+'.ti-col-label{font-size:9px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#d4850a;margin-bottom:10px;text-align:center;width:120px;}\n'+
+'.ti-node{background:rgba(240,168,48,0.10);border:1.5px solid #d4850a;border-radius:10px;padding:12px;text-align:center;cursor:pointer;transition:background 0.2s,transform 0.15s;width:120px;}\n'+
+'.ti-node:hover{background:rgba(240,168,48,0.20);}\n'+
+'.ti-node .nt{color:#f0a830;font-size:12px;font-weight:600;}\n'+
+'.ti-node .ns{color:#b07020;font-size:10px;margin-top:3px;}\n'+
+'.ti-conn{display:flex;align-items:center;width:120px;margin-top:10px;}\n'+
+'.ti-conn-line{flex:1;height:2px;background:linear-gradient(to left,#d4850a,transparent);position:relative;overflow:visible;}\n'+
+'.ti-conn-pulse{width:7px;height:7px;border-radius:50%;background:#f0a830;position:absolute;top:-2.5px;animation:tiflow 2s ease-in-out infinite;}\n'+
+'@keyframes tiflow{0%{right:0;opacity:0}10%{opacity:1}90%{opacity:1}100%{right:calc(100% - 7px);opacity:0}}\n'+
+'.ti-conn-arrow{color:#d4850a;font-size:10px;}\n'+
+'.ti-conn-lbl{font-size:9px;color:#7a6020;margin-top:4px;text-align:center;width:120px;}\n'+
+'.nodes-2x2{display:grid;grid-template-columns:1fr 1fr;gap:7px;}\n'+
+'.nodes-2x2 .node{height:52px;display:flex;flex-direction:column;justify-content:center;align-items:center;}\n'+
+'.nodes-row{display:flex;gap:8px;justify-content:center;}\n'+
+'.node{border-radius:8px;padding:8px;cursor:pointer;text-align:center;border:1px solid transparent;transition:transform 0.15s,background 0.2s;}\n'+
+'.node:hover{transform:translateY(-2px);}\n'+
+'.nt{font-size:11px;font-weight:600;}\n'+
+'.ns{font-size:9px;margin-top:2px;opacity:0.65;}\n'+
+'.node-fortisoc{background:rgba(120,110,230,0.18);border-color:#786ee6;padding:12px 16px;}\n'+
+'.node-fortisoc .nt{color:#c4bfff;font-size:14px;}\n'+
+'.node-fortisoc .ns{color:#a09bef;font-size:11px;opacity:1;}\n'+
+'.node-teal{background:rgba(22,190,140,0.09);border-color:rgba(22,190,140,0.35);}\n'+
+'.node-teal .nt{color:#6ee8c8;}\n'+
+'.node-teal .ns{color:#22c9a0;}\n'+
+'.node-coral{background:rgba(216,90,48,0.10);border-color:rgba(216,90,48,0.35);}\n'+
+'.node-coral .nt{color:#f4a080;}\n'+
+'.node-coral .ns{color:#e07050;}\n'+
+'.node-indigo{background:rgba(83,74,183,0.10);border-color:rgba(83,74,183,0.35);}\n'+
+'.node-indigo .nt{color:#b0aaee;}\n'+
+'.node-indigo .ns{color:#8880cc;}\n'+
+'.flow-wrap{overflow:hidden;transition:max-height 0.4s cubic-bezier(0.4,0,0.2,1),opacity 0.35s ease;max-height:80px;opacity:1;}\n'+
+'.flow-wrap.collapsed{max-height:0;opacity:0;}\n'+
+'.flow-area{display:flex;justify-content:center;gap:32px;padding:2px 0;}\n'+
+'.flow-col{display:flex;flex-direction:column;align-items:center;gap:2px;}\n'+
+'.flow-lbl{font-size:9px;text-align:center;max-width:80px;}\n'+
+'.flow-track{width:2px;height:22px;border-radius:1px;position:relative;overflow:visible;}\n'+
+'.ft-up{background:linear-gradient(to top,#22c9a0,#22c9a050);}\n'+
+'.ft-down{background:linear-gradient(to bottom,#786ee6,#786ee650);}\n'+
+'.pulse{width:6px;height:6px;border-radius:50%;position:absolute;left:-2px;}\n'+
+'@keyframes pu{0%{top:22px;opacity:0}15%{opacity:1}85%{opacity:1}100%{top:0;opacity:0}}\n'+
+'@keyframes pd{0%{top:0;opacity:0}15%{opacity:1}85%{opacity:1}100%{top:22px;opacity:0}}\n'+
+'.pulse-up{background:#22c9a0;animation:pu 1.8s ease-in-out infinite;}\n'+
+'.pulse-down{background:#786ee6;animation:pd 1.8s ease-in-out infinite;}\n'+
+'.arrowhead{font-size:8px;line-height:1;}\n'+
+'.ah-up{color:#22c9a0;}\n'+
+'.ah-down{color:#786ee6;}\n'+
+'.collapsible{overflow:hidden;transition:max-height 0.4s cubic-bezier(0.4,0,0.2,1),opacity 0.35s ease;opacity:1;}\n'+
+'.collapsible.collapsed{max-height:0!important;opacity:0;}\n'+
+'.legend{display:flex;gap:14px;justify-content:center;margin-top:18px;flex-wrap:wrap;}\n'+
+'.legend-item{display:flex;align-items:center;gap:5px;font-size:10px;color:#3a4a70;}\n'+
+'.legend-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}\n'+
+'.hint{text-align:center;font-size:9px;color:#2a3a60;margin-top:10px;}\n'+
+'.stip{position:fixed;background:#111827;border:1px solid #2a3050;border-radius:10px;padding:12px 16px;max-width:260px;font-size:12px;line-height:1.55;z-index:200;display:none;pointer-events:none;color:#c8d0e0;}\n'+
+'.stip.show{display:block;}\n'+
+'.stip-title{font-weight:600;font-size:13px;margin-bottom:5px;color:#e8eaf0;}\n'+
+'.stip-tag{display:inline-block;margin-top:8px;font-size:9px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;padding:2px 8px;border-radius:10px;}\n'+
+'</style>\n'+
+'</head>\n<body>\n'+
+'<div id="sidebar">\n'+
+'  <div class="sb-header"><div class="sb-logo"><div class="sb-logo-icon">F</div><div class="sb-logo-text">Fortinet Decks</div></div><button class="toggle-sb" onclick="toggleSidebar()">&#9776;</button></div>\n'+
+'  <div class="nav-section"><div class="nav-label">Presentations</div>\n'+
+'    <div class="nav-item active" onclick="showPanel(\'secops\')" id="nav-secops"><div class="nav-icon" style="background:rgba(120,110,230,0.15);">&#128737;</div><div class="nav-text">Fortinet SecOps Ecosystem</div><div class="nav-badge badge-live">LIVE</div></div>\n'+
+'  </div>\n'+
+'  <div class="sb-footer">Fortinet 2026</div>\n'+
+'</div>\n'+
+'<div id="main">\n'+
+'  <div class="panel active" id="panel-secops">\n'+
+'    <div class="toggle-bar">\n'+
+'      <div class="toggle-btn" id="btn-all" onclick="toggleAll()"><span class="toggle-pip" style="background:#fff;opacity:1;"></span>Reveal</div>\n'+
+'      <div class="divider"></div>\n'+
+'      <div class="toggle-btn active" data-key="ctrl"   onclick="toggle(\'ctrl\')"><span class="toggle-pip" style="background:#d85a30"></span>Control &amp; Protection</div>\n'+
+'      <div class="toggle-btn active" data-key="data"   onclick="toggle(\'data\')"><span class="toggle-pip" style="background:#5a7fd4"></span>Data and Information</div>\n'+
+'      <div class="toggle-btn active" data-key="detect" onclick="toggle(\'detect\')"><span class="toggle-pip" style="background:#22c9a0"></span>Detection</div>\n'+
+'      <div class="toggle-btn active" data-key="svc"    onclick="toggle(\'svc\')"><span class="toggle-pip" style="background:#d4850a"></span>MSSP</div>\n'+
+'      <div class="toggle-btn active" data-key="orch"   onclick="toggle(\'orch\')"><span class="toggle-pip" style="background:#786ee6"></span>Orchestration</div>\n'+
+'      <div class="toggle-btn active" data-key="ti"     onclick="toggle(\'ti\')"><span class="toggle-pip" style="background:#f0a830"></span>Threat Intel</div>\n'+
+'      <div class="toggle-btn active" data-key="third"  onclick="toggle(\'third\')"><span class="toggle-pip" style="background:#8880cc"></span>3rd Party Sources</div>\n'+
+'      <div class="toggle-btn active" data-key="managed" onclick="toggle(\'managed\')"><span class="toggle-pip" style="background:#1a9e78"></span>MSP</div>\n'+
+'    </div>\n'+
+'    <div class="secops-body"><div class="outer">\n'+
+'      <div class="ecosystem-ring" id="canvas">\n'+
+'        <div class="ecosystem-badge">'+esc(s.labels.managed||'Fortinet SecOps Ecosystem')+'</div>\n'+
+'        <div class="outer-grid">\n'+
+'          <div class="collapsible" id="sec-managed" style="max-height:800px">\n'+
+'            <div class="layer-managed">\n'+
+'              <div class="ll">'+esc(s.labels.managed||'Fortinet Managed Technology')+'</div>\n'+
+              nodes_teal('managed')+'\n'+
+'            </div>\n'+
+'          </div>\n'+
+'          <div class="collapsible" id="sec-svc" style="max-height:700px">\n'+
+'            <div class="svc-col">\n'+
+'              <div class="svc-col-label">'+esc(s.labels.svc||'Managed Security Services')+'</div>\n'+
+'              <div class="svc-col-inner">\n'+
+                nodes_svc()+'\n'+
+'              </div>\n'+
+'              <div class="resp-arrow"><div class="resp-arrow-label">Response Actions</div><div class="resp-arrow-track"><div class="resp-arrow-head">&#9664;</div><div class="resp-arrow-line"><div class="resp-arrow-pulse"></div></div></div></div>\n'+
+'            </div>\n'+
+'          </div>\n'+
+'          <div class="right-side">\n'+
+'            <div class="top-row">\n'+
+'              <div class="collapsible" id="sec-orch" style="max-height:200px"><div class="layer-orch"><div class="ll">'+esc(s.labels.orch||'Orchestration &amp; Response')+'</div><div class="nodes-row">'+nodes_orch()+'</div></div></div>\n'+
+'              <div class="collapsible" id="sec-ti" style="max-height:200px"><div class="ti-panel"><div class="ti-col-label">Threat Intel</div>'+nodes_ti()+'<div class="ti-conn"><div class="ti-conn-arrow">&#9664;</div><div class="ti-conn-line"><div class="ti-conn-pulse"></div></div></div><div class="ti-conn-lbl">Enrichment feeds</div></div></div>\n'+
+'            </div>\n'+
+'            <div class="flow-wrap" id="flow-top"><div class="flow-area"><div class="flow-col"><div class="arrowhead ah-up">&#9650;</div><div class="flow-track ft-up"><div class="pulse pulse-up"></div></div><div class="flow-lbl" style="color:#22c9a0">Enriched alerts</div></div><div class="flow-col"><div class="arrowhead ah-up">&#9650;</div><div class="flow-track ft-up"><div class="pulse pulse-up" style="animation-delay:0.9s"></div></div><div class="flow-lbl" style="color:#22c9a0">Telemetry</div></div><div class="flow-col"><div class="flow-lbl" style="color:#786ee6">Response actions</div><div class="flow-track ft-down"><div class="pulse pulse-down" style="animation-delay:0.4s"></div></div><div class="arrowhead ah-down">&#9660;</div></div></div></div>\n'+
+'            <div class="paired-layers">\n'+
+'              <div class="collapsible" id="sec-detect" style="max-height:300px"><div class="layer-detect"><div class="ll">'+esc(s.labels.detect||'Detection &amp; Analytics')+'</div><div class="nodes-2x2">'+nodes_teal('detect')+'</div></div></div>\n'+
+'              <div class="collapsible" id="sec-ctrl"   style="max-height:300px"><div class="layer-ctrl"><div class="ll">'+esc(s.labels.ctrl||'Control &amp; Protection')+'</div><div class="nodes-2x2">'+nodes_coral('ctrl')+'</div></div></div>\n'+
+'              <div class="collapsible" id="sec-third"  style="max-height:300px"><div class="layer-third"><div class="ll">'+esc(s.labels.third||'3rd Party Sources')+'</div><div class="nodes-2x2">'+nodes_indigo('third')+'</div></div></div>\n'+
+'            </div>\n'+
+'            <div class="flow-wrap" id="flow-data"><div class="flow-area"><div class="flow-col"><div class="arrowhead" style="color:#5a7fd4">&#9650;</div><div class="flow-track" style="background:linear-gradient(to top,#5a7fd4,#5a7fd450)"><div class="pulse" style="background:#5a7fd4;animation:pu 1.8s ease-in-out infinite 0.2s"></div></div><div class="flow-lbl" style="color:#5a7fd4">Data feeds</div></div></div></div>\n'+
+'            <div class="collapsible" id="sec-data" style="max-height:200px"><div style="border-radius:12px;padding:11px 10px 13px;background:rgba(90,127,212,0.07);border:1px solid rgba(90,127,212,0.28);"><div class="ll" style="color:#5a7fd4">'+esc(s.labels.data||'Data and Information')+'</div><div style="display:grid;grid-template-columns:repeat(5,1fr);gap:7px;">'+nodes_data()+'</div></div></div>\n'+
+'          </div>\n'+
+'        </div>\n'+
+'      </div>\n'+
+'      <div class="legend"><div class="legend-item"><div class="legend-dot" style="background:#786ee6"></div>Orchestration</div><div class="legend-item"><div class="legend-dot" style="background:#22c9a0"></div>Detection</div><div class="legend-item"><div class="legend-dot" style="background:#d85a30"></div>Control</div><div class="legend-item"><div class="legend-dot" style="background:#f0a830"></div>Threat Intel / Services</div><div class="legend-item"><div class="legend-dot" style="background:#1a9e78"></div>Managed Technology</div><div class="legend-item"><div class="legend-dot" style="background:#8880cc"></div>3rd Party</div><div class="legend-item"><div class="legend-dot" style="background:#5a7fd4"></div>Data &amp; Information</div></div>\n'+
+'      <div class="hint">Click canvas &middot; Space / &rarr; to reveal &middot; &larr; / Backspace to go back</div>\n'+
+'    </div></div>\n'+
+'  </div>\n'+
+'</div>\n'+
+'<div class="stip" id="stip"><div class="stip-title" id="stip-title"></div><div id="stip-desc"></div><div class="stip-tag" id="stip-tag"></div></div>\n'+
+'<script>\n'+
+'function toggleSidebar(){document.getElementById("sidebar").classList.toggle("collapsed");}\n'+
+'function showPanel(id){document.querySelectorAll(".panel").forEach(function(p){p.classList.remove("active");});document.getElementById("panel-"+id).classList.add("active");}\n'+
+'var KEYS=["ctrl","data","detect","svc","orch","ti","third","managed"];\n'+
+'var maxH={svc:700,orch:200,detect:300,ctrl:300,ti:200,managed:800,third:300,data:200};\n'+
+'var secState={svc:true,orch:true,detect:true,ctrl:true,ti:true,managed:true,third:true,data:true};\n'+
+'var soloIndex=-1,allOn=true;\n'+
+'function updateFlows(){var st=secState.orch&&(secState.detect||secState.ctrl||secState.third);var sd=secState.data&&(secState.detect||secState.ctrl||secState.third);var ft=document.getElementById("flow-top");var fd=document.getElementById("flow-data");if(ft){ft.classList.toggle("collapsed",!st);}if(fd){fd.classList.toggle("collapsed",!sd);}}\n'+
+'function applyState(){KEYS.forEach(function(key){var btn=document.querySelector(".toggle-btn[data-key=\'"+key+"\']");if(btn)btn.classList.toggle("active",secState[key]);var sec=document.getElementById("sec-"+key);if(sec){sec.style.maxHeight=secState[key]?maxH[key]+"px":"0";sec.classList.toggle("collapsed",!secState[key]);}});updateFlows();}\n'+
+'function updateAllBtn(){var btn=document.getElementById("btn-all");if(!btn)return;if(allOn){btn.innerHTML=\'<span class="toggle-pip" style="background:#fff;opacity:1;"></span>Reveal\';btn.style.borderColor="#4a5a80";btn.style.background="rgba(74,90,128,0.2)";btn.style.color="#e0e8f8";}else{btn.innerHTML=\'<span class="toggle-pip" style="background:#f0a830;opacity:1;"></span>Reveal \'+(soloIndex+1)+"/"+KEYS.length+" \\u25b6";btn.style.borderColor="#f0a830";btn.style.background="rgba(212,133,10,0.15)";btn.style.color="#f0a830";}}\n'+
+'function toggleAll(){var stip=document.getElementById("stip");if(stip)stip.classList.remove("show");if(allOn){KEYS.forEach(function(k){secState[k]=false;});allOn=false;soloIndex=0;secState[KEYS[0]]=true;}else{soloIndex++;if(soloIndex>=KEYS.length){KEYS.forEach(function(k){secState[k]=true;});allOn=true;soloIndex=-1;}else{secState[KEYS[soloIndex]]=true;}}updateAllBtn();applyState();}\n'+
+'function stepBack(){var stip=document.getElementById("stip");if(stip)stip.classList.remove("show");if(allOn)return;if(soloIndex<=0){KEYS.forEach(function(k){secState[k]=true;});allOn=true;soloIndex=-1;}else{secState[KEYS[soloIndex]]=false;soloIndex--;}updateAllBtn();applyState();}\n'+
+'function toggle(key){secState[key]=!secState[key];var btn=document.querySelector(".toggle-btn[data-key=\'"+key+"\']");if(btn)btn.classList.toggle("active",secState[key]);var sec=document.getElementById("sec-"+key);if(sec){sec.style.maxHeight=secState[key]?maxH[key]+"px":"0";sec.classList.toggle("collapsed",!secState[key]);}updateFlows();}\n'+
+'function showTip(e,title,desc,color){var t=document.getElementById("stip");var tt=document.getElementById("stip-title");var td=document.getElementById("stip-desc");var tg=document.getElementById("stip-tag");if(!t)return;tt.textContent=title;td.textContent=desc;var colors={teal:"#22c9a0",coral:"#d85a30",purple:"#786ee6",amber:"#f0a830",blue:"#5a7fd4"};var c=colors[color]||"#7a9de0";tg.textContent=color.toUpperCase();tg.style.background="rgba(0,0,0,0.3)";tg.style.color=c;tg.style.border="1px solid "+c;var x=e.clientX+14,y=e.clientY+14;if(x+270>window.innerWidth)x=e.clientX-280;if(y+100>window.innerHeight)y=e.clientY-110;t.style.left=x+"px";t.style.top=y+"px";t.classList.add("show");e.stopPropagation();}\n'+
+'var canvasEl=document.getElementById("canvas");if(canvasEl)canvasEl.addEventListener("click",function(e){if(e.target.closest(".node")||e.target.closest(".svc-card")||e.target.closest(".ti-node")||e.target.closest(".toggle-btn"))return;toggleAll();});\n'+
+'document.addEventListener("keydown",function(e){if(e.key===" "||e.key==="ArrowRight"||e.key==="ArrowDown"){e.preventDefault();toggleAll();}else if(e.key==="Backspace"||e.key==="ArrowLeft"||e.key==="ArrowUp"){e.preventDefault();stepBack();}});\n'+
+'document.addEventListener("click",function(e){if(!e.target.closest(".node")&&!e.target.closest(".svc-card")&&!e.target.closest(".ti-node")&&!e.target.closest(".toggle-btn")){var stip=document.getElementById("stip");if(stip)stip.classList.remove("show");}});\n'+
+'<\/script>\n'+
+'</body>\n</html>';
+
+  var blob = new Blob([html], { type: 'text/html' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'Fortinet Deck.html';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

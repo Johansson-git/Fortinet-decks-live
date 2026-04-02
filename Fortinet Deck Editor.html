@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Fortinet SecOps — Editor</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',sans-serif;background:#0a0e1a;color:#c8d0e0;display:flex;flex-direction:column;height:100vh;overflow:hidden;}
+
+/* ── Editor Toolbar ── */
+.editor-toolbar{display:flex;align-items:center;gap:10px;padding:8px 16px;background:#0d1525;border-bottom:1px solid #1e2d50;flex-shrink:0;flex-wrap:wrap;}
+.editor-badge{font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#f0a830;background:rgba(240,168,48,0.1);border:1px solid rgba(240,168,48,0.3);border-radius:20px;padding:3px 12px;}
+.ed-btn{font-size:11px;font-weight:600;padding:4px 12px;border-radius:6px;border:1px solid #2a3a60;background:rgba(255,255,255,0.04);color:#8a9ab8;cursor:pointer;transition:all 0.15s;font-family:inherit;}
+.ed-btn:hover{background:rgba(120,110,230,0.15);border-color:#786ee6;color:#c4bfff;}
+.ed-btn.danger:hover{background:rgba(216,90,48,0.15);border-color:#d85a30;color:#f4a080;}
+.ed-divider{width:1px;background:#1e2d50;height:20px;}
+.ed-hint{font-size:10px;color:#2a3a60;margin-left:auto;}
+
+/* ── Layout ── */
+.main-body{flex:1;overflow:hidden;display:flex;}
+#sidebar{width:220px;min-width:220px;background:#0d1525;border-right:1px solid #1e2d50;display:flex;flex-direction:column;flex-shrink:0;}
+.sb-header{display:flex;align-items:center;gap:10px;padding:16px 14px;border-bottom:1px solid #1e2d50;}
+.sb-logo-icon{width:24px;height:24px;border-radius:6px;background:linear-gradient(135deg,#786ee6,#22c9a0);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;}
+.sb-logo-text{font-size:11px;font-weight:700;color:#7a9de0;letter-spacing:0.08em;text-transform:uppercase;}
+.sb-info{padding:14px;font-size:10px;color:#3a4a70;line-height:1.7;flex:1;}
+.sb-info b{color:#5a6a80;display:block;margin-bottom:4px;}
+.sb-footer{padding:12px 14px;border-top:1px solid #1e2d50;font-size:10px;color:#f0a830;}
+.secops-body{flex:1;overflow-y:auto;padding:16px;}
+
+/* ── Ecosystem layout ── */
+.outer{max-width:1100px;margin:0 auto;}
+.ecosystem-ring{border:1.5px dashed #3a4a70;border-radius:20px;padding:44px 20px 24px;position:relative;background:rgba(20,30,60,0.35);}
+.ecosystem-badge{position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:#1e2d55;border:1px solid #3a4a70;color:#7a9de0;font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:3px 18px;border-radius:20px;white-space:nowrap;}
+.outer-grid{display:grid;grid-template-columns:130px 150px 1fr;gap:16px;align-items:start;}
+.right-side{display:flex;flex-direction:column;gap:12px;}
+.top-row{display:grid;grid-template-columns:1fr 140px;gap:16px;align-items:start;}
+.paired-layers{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;align-items:start;}
+
+/* ── Layer containers ── */
+.ll{font-size:9px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:9px;cursor:text;border-radius:3px;}
+.ll:hover{background:rgba(120,110,230,0.08);}
+.layer-managed{border-radius:12px;padding:11px 8px 13px;background:rgba(15,110,86,0.08);border:1px solid rgba(15,110,86,0.28);display:flex;flex-direction:column;gap:0;}
+.layer-managed .ll{color:#1a9e78;text-align:center;}
+.layer-orch{border-radius:12px;padding:11px 13px 13px;background:rgba(120,110,230,0.10);border:1px solid rgba(120,110,230,0.30);}
+.layer-orch .ll{color:#a09bef;}
+.layer-detect{border-radius:12px;padding:11px 10px 13px;background:rgba(22,190,140,0.07);border:1px solid rgba(22,190,140,0.25);}
+.layer-detect .ll{color:#22c9a0;}
+.layer-ctrl{border-radius:12px;padding:11px 10px 13px;background:rgba(216,90,48,0.08);border:1px solid rgba(216,90,48,0.25);}
+.layer-ctrl .ll{color:#e07050;}
+.layer-third{border-radius:12px;padding:11px 10px 13px;background:rgba(83,74,183,0.07);border:1px solid rgba(83,74,183,0.28);}
+.layer-third .ll{color:#8880cc;}
+.layer-data{border-radius:12px;padding:11px 10px 13px;background:rgba(90,127,212,0.07);border:1px solid rgba(90,127,212,0.28);}
+.layer-data .ll{color:#5a7fd4;}
+
+/* ── Nodes ── */
+.node{border-radius:8px;padding:8px;text-align:center;border:1px solid transparent;transition:transform 0.15s,background 0.2s;cursor:default;}
+.node:hover{transform:translateY(-2px);}
+.nt{font-size:11px;font-weight:600;}
+.ns{font-size:9px;margin-top:2px;opacity:0.65;}
+.node-fortisoc{background:rgba(120,110,230,0.18);border-color:#786ee6;padding:12px 16px;}
+.node-fortisoc .nt{color:#c4bfff;font-size:14px;}
+.node-fortisoc .ns{color:#a09bef;font-size:11px;opacity:1;}
+.node-teal{background:rgba(22,190,140,0.09);border-color:rgba(22,190,140,0.35);}
+.node-teal .nt{color:#6ee8c8;}
+.node-teal .ns{color:#22c9a0;}
+.node-coral{background:rgba(216,90,48,0.10);border-color:rgba(216,90,48,0.35);}
+.node-coral .nt{color:#f4a080;}
+.node-coral .ns{color:#e07050;}
+.node-indigo{background:rgba(83,74,183,0.10);border-color:rgba(83,74,183,0.35);}
+.node-indigo .nt{color:#b0aaee;}
+.node-indigo .ns{color:#8880cc;}
+.node-blue{background:rgba(90,127,212,0.10);border-color:rgba(90,127,212,0.35);}
+.node-blue .nt{color:#a0b8e8;}
+.node-blue .ns{color:#5a7fd4;}
+.svc-card{background:rgba(212,133,10,0.10);border:1px solid #d4850a;border-radius:10px;padding:10px;text-align:center;cursor:default;transition:background 0.2s;}
+.svc-card .nt{color:#f0a830;font-size:12px;font-weight:600;}
+.svc-card .ns{color:#b07020;font-size:10px;margin-top:3px;}
+.svc-col-label-el{font-size:9px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#d4850a;text-align:center;margin-bottom:10px;cursor:text;border-radius:3px;}
+.svc-col-label-el:hover{background:rgba(212,133,10,0.08);}
+.svc-col-inner{border:1.5px solid rgba(212,133,10,0.4);border-radius:12px;background:rgba(212,133,10,0.05);display:flex;flex-direction:column;gap:8px;padding:10px 8px;}
+.ti-node{background:rgba(240,168,48,0.10);border:1.5px solid #d4850a;border-radius:10px;padding:12px;text-align:center;cursor:default;width:120px;}
+.ti-node .nt{color:#f0a830;font-size:12px;font-weight:600;}
+.ti-node .ns{color:#b07020;font-size:10px;margin-top:3px;}
+.ti-col-label{font-size:9px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#d4850a;margin-bottom:10px;text-align:center;}
+.ti-conn{display:flex;align-items:center;width:120px;margin-top:8px;}
+.ti-conn-line{flex:1;height:2px;background:linear-gradient(to left,#d4850a,transparent);position:relative;overflow:visible;}
+.ti-conn-pulse{width:7px;height:7px;border-radius:50%;background:#f0a830;position:absolute;top:-2.5px;animation:tiflow 2s ease-in-out infinite;}
+@keyframes tiflow{0%{right:0;opacity:0}10%{opacity:1}90%{opacity:1}100%{right:calc(100% - 7px);opacity:0}}
+.ti-conn-arrow{color:#d4850a;font-size:10px;}
+.ti-conn-lbl{font-size:9px;color:#7a6020;margin-top:4px;text-align:center;width:120px;}
+
+/* ── Node containers ── */
+.nodes-col{display:flex;flex-direction:column;gap:7px;}
+.nodes-2x2{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.nodes-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
+.nodes-5col{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;}
+.nodes-svc{display:flex;flex-direction:column;gap:8px;}
+.nodes-ti{display:flex;flex-direction:column;align-items:flex-start;}
+
+/* ── resp-arrow ── */
+.resp-arrow{margin-top:10px;display:flex;flex-direction:column;align-items:flex-start;gap:5px;}
+.resp-arrow-label{font-size:9px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#f4a080;}
+.resp-arrow-track{display:flex;align-items:center;width:100%;}
+.resp-arrow-head{color:#d85a30;font-size:13px;line-height:1;flex-shrink:0;}
+.resp-arrow-line{flex:1;height:3px;background:linear-gradient(to left,#d85a30,rgba(216,90,48,0.15));border-radius:2px;position:relative;overflow:hidden;}
+.resp-arrow-pulse{width:10px;height:10px;border-radius:50%;background:#f4a080;box-shadow:0 0 8px #d85a30;position:absolute;top:-3.5px;animation:respflow 1.8s ease-in-out infinite;}
+@keyframes respflow{0%{right:0;opacity:0}10%{opacity:1}90%{opacity:1}100%{right:calc(100% - 10px);opacity:0}}
+
+/* ── Flow indicators ── */
+.flow-wrap{overflow:hidden;max-height:80px;}
+.flow-area{display:flex;justify-content:center;gap:32px;padding:2px 0;}
+.flow-col{display:flex;flex-direction:column;align-items:center;gap:2px;}
+.flow-lbl{font-size:9px;text-align:center;max-width:80px;}
+.flow-track{width:2px;height:22px;border-radius:1px;position:relative;overflow:visible;}
+.ft-up{background:linear-gradient(to top,#22c9a0,#22c9a050);}
+.ft-down{background:linear-gradient(to bottom,#786ee6,#786ee650);}
+.pulse{width:6px;height:6px;border-radius:50%;position:absolute;left:-2px;}
+@keyframes pu{0%{top:22px;opacity:0}15%{opacity:1}85%{opacity:1}100%{top:0;opacity:0}}
+@keyframes pd{0%{top:0;opacity:0}15%{opacity:1}85%{opacity:1}100%{top:22px;opacity:0}}
+.pulse-up{background:#22c9a0;animation:pu 1.8s ease-in-out infinite;}
+.pulse-down{background:#786ee6;animation:pd 1.8s ease-in-out infinite;}
+.arrowhead{font-size:8px;line-height:1;}
+.ah-up{color:#22c9a0;}
+.ah-down{color:#786ee6;}
+
+/* ── Legend / hint ── */
+.legend{display:flex;gap:14px;justify-content:center;margin-top:18px;flex-wrap:wrap;}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:10px;color:#3a4a70;}
+.legend-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.hint{text-align:center;font-size:9px;color:#2a3a60;margin-top:10px;}
+
+/* ── Editor overlays ── */
+.node-wrap{position:relative;}
+.node-wrap:hover > .del-btn{display:flex;}
+.del-btn{position:absolute;top:-7px;right:-7px;width:17px;height:17px;border-radius:50%;background:#0d1525;border:1px solid #d85a30;color:#f4a080;font-size:11px;cursor:pointer;display:none;align-items:center;justify-content:center;line-height:1;z-index:20;padding:0;font-family:inherit;}
+.del-btn:hover{background:#d85a30;color:#fff;}
+.add-node-btn{display:flex;align-items:center;justify-content:center;gap:4px;width:100%;padding:5px 4px;border-radius:6px;border:1px dashed #1e3050;background:none;color:#2a3a60;font-size:10px;cursor:pointer;transition:all 0.15s;font-family:inherit;margin-top:6px;}
+.add-node-btn:hover{border-color:#786ee6;color:#786ee6;background:rgba(120,110,230,0.07);}
+.add-form{background:#0d1525;border:1px solid #2a3a60;border-radius:8px;padding:8px;margin-top:6px;display:flex;flex-direction:column;gap:6px;}
+.add-form.hidden{display:none;}
+.add-form input{background:#0a0e1a;border:1px solid #2a3550;border-radius:5px;color:#c8d0e0;font-size:11px;padding:5px 8px;font-family:inherit;outline:none;width:100%;}
+.add-form input:focus{border-color:#786ee6;}
+.add-form input::placeholder{color:#2a3a60;}
+.add-form-btns{display:flex;gap:6px;}
+.add-form-btns button{flex:1;padding:4px;border-radius:5px;border:none;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;}
+.btn-confirm{background:rgba(120,110,230,0.25);color:#c4bfff;}
+.btn-confirm:hover{background:rgba(120,110,230,0.45);}
+.btn-cancel{background:rgba(255,255,255,0.05);color:#5a6a80;}
+.btn-cancel:hover{background:rgba(255,255,255,0.1);}
+
+/* ── Drag ── */
+.dragging{opacity:0.35;pointer-events:none;}
+.drag-over-target{outline:2px dashed rgba(120,110,230,0.6)!important;outline-offset:3px;}
+.drop-placeholder{border:2px dashed rgba(120,110,230,0.45);border-radius:8px;background:rgba(120,110,230,0.05);min-height:40px;}
+
+/* ── Editable ── */
+[contenteditable="true"]{outline:1px dashed #786ee6 !important;border-radius:3px;padding:1px 4px;cursor:text;}
+[contenteditable="true"]:focus{outline:2px solid #786ee6 !important;background:rgba(120,110,230,0.1);}
+</style>
+</head>
+<body>
+
+<!-- ── Sidebar ── -->
+<div id="sidebar">
+  <div class="sb-header">
+    <div class="sb-logo-icon">F</div>
+    <div class="sb-logo-text">Deck Editor</div>
+  </div>
+  <div class="sb-info">
+    <b>How to use</b>
+    ✏ Double-click any text to edit it<br>
+    ＋ Click "+ Add Node" to add<br>
+    × Hover a node to delete it<br>
+    ⠿ Drag nodes to reorder<br>
+    ↓ Export saves your changes<br>
+    ↺ Reset restores defaults
+  </div>
+  <div class="sb-footer">✏ Editor Mode · Fortinet 2026</div>
+</div>
+
+<!-- ── Main ── -->
+<div class="main-body">
+  <div class="secops-body">
+    <div class="outer">
+
+      <!-- Toolbar -->
+      <div class="editor-toolbar" style="border-radius:8px;margin-bottom:14px;">
+        <span class="editor-badge">✏ Editor Mode</span>
+        <div class="ed-divider"></div>
+        <button class="ed-btn" onclick="exportHTML()">⬇ Export HTML</button>
+        <button class="ed-btn danger" onclick="resetToDefaults()">↺ Reset to Default</button>
+        <span class="ed-hint">Changes auto-save in browser · Export to get a shareable file</span>
+      </div>
+
+      <!-- Ecosystem -->
+      <div class="ecosystem-ring">
+        <div class="ecosystem-badge">Fortinet SecOps Ecosystem</div>
+        <div class="outer-grid">
+
+          <!-- ── Managed Technology ── -->
+          <div>
+            <div class="layer-managed">
+              <div class="ll" id="ll-managed" ondblclick="editLabel(event,'managed')">Fortinet Managed Technology</div>
+              <div class="nodes-col nodes-container" id="nc-managed"></div>
+              <button class="add-node-btn" onclick="showAddForm('managed')">+ Add Node</button>
+              <div class="add-form hidden" id="af-managed">
+                <input type="text" id="aft-managed" placeholder="Title  (e.g. Managed FortiGate)">
+                <input type="text" id="afs-managed" placeholder="Subtitle  (e.g. Firewall ops)">
+                <div class="add-form-btns">
+                  <button class="btn-confirm" onclick="addNode('managed')">Add</button>
+                  <button class="btn-cancel" onclick="hideAddForm('managed')">Cancel</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Managed Security Services ── -->
+          <div>
+            <div class="svc-col-label-el" id="ll-svc" ondblclick="editLabel(event,'svc')">Managed Security Services</div>
+            <div class="svc-col-inner">
+              <div class="nodes-svc nodes-container" id="nc-svc"></div>
+              <button class="add-node-btn" onclick="showAddForm('svc')">+ Add Node</button>
+              <div class="add-form hidden" id="af-svc">
+                <input type="text" id="aft-svc" placeholder="Title  (e.g. MDR)">
+                <input type="text" id="afs-svc" placeholder="Subtitle">
+                <div class="add-form-btns">
+                  <button class="btn-confirm" onclick="addNode('svc')">Add</button>
+                  <button class="btn-cancel" onclick="hideAddForm('svc')">Cancel</button>
+                </div>
+              </div>
+            </div>
+            <div class="resp-arrow">
+              <div class="resp-arrow-label">Response Actions</div>
+              <div class="resp-arrow-track"><div class="resp-arrow-head">&#9664;</div><div class="resp-arrow-line"><div class="resp-arrow-pulse"></div></div></div>
+            </div>
+          </div>
+
+          <!-- ── Right side ── -->
+          <div class="right-side">
+
+            <!-- Top row: Orch + TI -->
+            <div class="top-row">
+              <!-- Orchestration -->
+              <div class="layer-orch">
+                <div class="ll" id="ll-orch" ondblclick="editLabel(event,'orch')">Orchestration &amp; Response</div>
+                <div class="nodes-row nodes-container" id="nc-orch"></div>
+                <button class="add-node-btn" onclick="showAddForm('orch')">+ Add Node</button>
+                <div class="add-form hidden" id="af-orch">
+                  <input type="text" id="aft-orch" placeholder="Title  (e.g. FortiSOC)">
+                  <input type="text" id="afs-orch" placeholder="Subtitle">
+                  <div class="add-form-btns">
+                    <button class="btn-confirm" onclick="addNode('orch')">Add</button>
+                    <button class="btn-cancel" onclick="hideAddForm('orch')">Cancel</button>
+                  </div>
+                </div>
+              </div>
+              <!-- Threat Intel -->
+              <div style="display:flex;flex-direction:column;align-items:flex-start;padding-left:10px;">
+                <div class="ti-col-label">Threat Intel</div>
+                <div class="nodes-ti nodes-container" id="nc-ti"></div>
+                <button class="add-node-btn" onclick="showAddForm('ti')" style="width:120px;">+ Add</button>
+                <div class="add-form hidden" id="af-ti" style="width:130px;">
+                  <input type="text" id="aft-ti" placeholder="Title">
+                  <input type="text" id="afs-ti" placeholder="Subtitle">
+                  <div class="add-form-btns">
+                    <button class="btn-confirm" onclick="addNode('ti')">Add</button>
+                    <button class="btn-cancel" onclick="hideAddForm('ti')">Cancel</button>
+                  </div>
+                </div>
+                <div class="ti-conn"><div class="ti-conn-arrow">&#9664;</div><div class="ti-conn-line"><div class="ti-conn-pulse"></div></div></div>
+                <div class="ti-conn-lbl">Enrichment feeds</div>
+              </div>
+            </div>
+
+            <!-- Flow top -->
+            <div class="flow-wrap"><div class="flow-area">
+              <div class="flow-col"><div class="arrowhead ah-up">&#9650;</div><div class="flow-track ft-up"><div class="pulse pulse-up"></div></div><div class="flow-lbl" style="color:#22c9a0">Enriched alerts</div></div>
+              <div class="flow-col"><div class="arrowhead ah-up">&#9650;</div><div class="flow-track ft-up"><div class="pulse pulse-up" style="animation-delay:0.9s"></div></div><div class="flow-lbl" style="color:#22c9a0">Telemetry</div></div>
+              <div class="flow-col"><div class="flow-lbl" style="color:#786ee6">Response actions</div><div class="flow-track ft-down"><div class="pulse pulse-down" style="animation-delay:0.4s"></div></div><div class="arrowhead ah-down">&#9660;</div></div>
+            </div></div>
+
+            <!-- Paired layers: Detect · Ctrl · Third -->
+            <div class="paired-layers">
+              <!-- Detection -->
+              <div class="layer-detect">
+                <div class="ll" id="ll-detect" ondblclick="editLabel(event,'detect')">Detection &amp; Analytics</div>
+                <div class="nodes-2x2 nodes-container" id="nc-detect"></div>
+                <button class="add-node-btn" onclick="showAddForm('detect')">+ Add Node</button>
+                <div class="add-form hidden" id="af-detect">
+                  <input type="text" id="aft-detect" placeholder="Title">
+                  <input type="text" id="afs-detect" placeholder="Subtitle">
+                  <div class="add-form-btns">
+                    <button class="btn-confirm" onclick="addNode('detect')">Add</button>
+                    <button class="btn-cancel" onclick="hideAddForm('detect')">Cancel</button>
+                  </div>
+                </div>
+              </div>
+              <!-- Control -->
+              <div class="layer-ctrl">
+                <div class="ll" id="ll-ctrl" ondblclick="editLabel(event,'ctrl')">Control &amp; Protection</div>
+                <div class="nodes-2x2 nodes-container" id="nc-ctrl"></div>
+                <button class="add-node-btn" onclick="showAddForm('ctrl')">+ Add Node</button>
+                <div class="add-form hidden" id="af-ctrl">
+                  <input type="text" id="aft-ctrl" placeholder="Title">
+                  <input type="text" id="afs-ctrl" placeholder="Subtitle">
+                  <div class="add-form-btns">
+                    <button class="btn-confirm" onclick="addNode('ctrl')">Add</button>
+                    <button class="btn-cancel" onclick="hideAddForm('ctrl')">Cancel</button>
+                  </div>
+                </div>
+              </div>
+              <!-- 3rd Party -->
+              <div class="layer-third">
+                <div class="ll" id="ll-third" ondblclick="editLabel(event,'third')">3rd Party Sources</div>
+                <div class="nodes-2x2 nodes-container" id="nc-third"></div>
+                <button class="add-node-btn" onclick="showAddForm('third')">+ Add Node</button>
+                <div class="add-form hidden" id="af-third">
+                  <input type="text" id="aft-third" placeholder="Title">
+                  <input type="text" id="afs-third" placeholder="Subtitle">
+                  <div class="add-form-btns">
+                    <button class="btn-confirm" onclick="addNode('third')">Add</button>
+                    <button class="btn-cancel" onclick="hideAddForm('third')">Cancel</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Flow data -->
+            <div class="flow-wrap"><div class="flow-area">
+              <div class="flow-col"><div class="arrowhead" style="color:#5a7fd4">&#9650;</div><div class="flow-track" style="background:linear-gradient(to top,#5a7fd4,#5a7fd450)"><div class="pulse" style="background:#5a7fd4;animation:pu 1.8s ease-in-out infinite 0.2s"></div></div><div class="flow-lbl" style="color:#5a7fd4">Data feeds</div></div>
+            </div></div>
+
+            <!-- Data layer -->
+            <div class="layer-data">
+              <div class="ll" id="ll-data" ondblclick="editLabel(event,'data')">Data and Information</div>
+              <div class="nodes-5col nodes-container" id="nc-data"></div>
+              <button class="add-node-btn" onclick="showAddForm('data')">+ Add Node</button>
+              <div class="add-form hidden" id="af-data">
+                <input type="text" id="aft-data" placeholder="Title">
+                <input type="text" id="afs-data" placeholder="Subtitle">
+                <div class="add-form-btns">
+                  <button class="btn-confirm" onclick="addNode('data')">Add</button>
+                  <button class="btn-cancel" onclick="hideAddForm('data')">Cancel</button>
+                </div>
+              </div>
+            </div>
+
+          </div><!-- /right-side -->
+        </div><!-- /outer-grid -->
+      </div><!-- /ecosystem-ring -->
+
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#786ee6"></div>Orchestration</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#22c9a0"></div>Detection</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#d85a30"></div>Control</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f0a830"></div>Threat Intel / Services</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#1a9e78"></div>Managed Technology</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#8880cc"></div>3rd Party</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#5a7fd4"></div>Data &amp; Information</div>
+      </div>
+      <div class="hint">Double-click text to edit &nbsp;&middot;&nbsp; Drag nodes to reorder &nbsp;&middot;&nbsp; Hover a node for the delete (×) button</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────
+// Default data
+// ─────────────────────────────────────────────────────────────────────
+var defaultData = {
+  labels: {
+    managed: 'Fortinet Managed Technology',
+    svc: 'Managed Security Services',
+    orch: 'Orchestration & Response',
+    detect: 'Detection & Analytics',
+    ctrl: 'Control & Protection',
+    third: '3rd Party Sources',
+    data: 'Data and Information'
+  },
+  nodes: {
+    managed: [
+      { title:'Managed FortiGate',    subtitle:'Firewall ops' },
+      { title:'Managed FortiAnalyzer',subtitle:'Log mgmt as a service' },
+      { title:'Managed FortiDeceptor',subtitle:'Deception as a service' },
+      { title:'Managed FortiNDR',     subtitle:'Network detection ops' },
+      { title:'Managed FortiDLP',     subtitle:'Data loss prevention' }
+    ],
+    svc: [
+      { title:'MDR',       subtitle:'Managed detection & response' },
+      { title:'SOCaaS',    subtitle:'Outsourced SOC operations' },
+      { title:'IRT',       subtitle:'Incident response team' },
+      { title:'Forensics', subtitle:'Digital forensics analysis' }
+    ],
+    orch: [
+      { title:'FortiSOC', subtitle:'FortiSIEM + FortiSOAR' }
+    ],
+    ti: [
+      { title:'FortiGuard TI', subtitle:'Global IOC feeds' }
+    ],
+    detect: [
+      { title:'FortiEDR',      subtitle:'Endpoint detection' },
+      { title:'FortiNDR',      subtitle:'Network detection' },
+      { title:'FortiDeceptor', subtitle:'Deception & lures' },
+      { title:'FortiRecon',    subtitle:'Attack surface mgmt' }
+    ],
+    ctrl: [
+      { title:'FortiGate',   subtitle:'NGFW & segmentation' },
+      { title:'FortiClient', subtitle:'Endpoint agent' },
+      { title:'FortiAppSec', subtitle:'App & API protection' },
+      { title:'FortiSASE',   subtitle:'Cloud-delivered SASE' }
+    ],
+    third: [
+      { title:'EDR',            subtitle:'CrowdStrike, S1...' },
+      { title:'NGFW',           subtitle:'Palo Alto, CP...' },
+      { title:'Cloud Providers',subtitle:'AWS, Azure, GCP' },
+      { title:'Identity',       subtitle:'Okta, Azure AD...' }
+    ],
+    data: [
+      { title:'Endpoints',   subtitle:'Devices' },
+      { title:'Server / App',subtitle:'Workloads' },
+      { title:'Network',     subtitle:'Flows' },
+      { title:'Cloud',       subtitle:'IaaS/PaaS/SaaS' },
+      { title:'Identity',    subtitle:'Users' }
+    ]
+  }
+};
+
+// Node class per layer
+var nodeClass = {
+  managed:'node-teal', svc:'', orch:'node-fortisoc', ti:'',
+  detect:'node-teal',  ctrl:'node-coral', third:'node-indigo', data:'node-blue'
+};
+
+// ─────────────────────────────────────────────────────────────────────
+// State — load from localStorage or use defaults
+// ─────────────────────────────────────────────────────────────────────
+var STORAGE_KEY = 'fortinet-editor-v2';
+var state = loadState();
+
+function loadState() {
+  try {
+    var s = localStorage.getItem(STORAGE_KEY);
+    if (s) return JSON.parse(s);
+  } catch(e) {}
+  return JSON.parse(JSON.stringify(defaultData));
+}
+
+function saveState() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Rendering
+// ─────────────────────────────────────────────────────────────────────
+var ALL_KEYS = ['managed','svc','orch','ti','detect','ctrl','third','data'];
+
+function renderAll() {
+  // Sync labels
+  ALL_KEYS.forEach(function(key) {
+    var ll = document.getElementById('ll-' + key);
+    if (ll && state.labels[key]) ll.textContent = state.labels[key];
+  });
+  // Render nodes
+  ALL_KEYS.forEach(renderLayer);
+  // Wire drop zones
+  ALL_KEYS.forEach(wireDrop);
+}
+
+function renderLayer(key) {
+  var nc = document.getElementById('nc-' + key);
+  if (!nc) return;
+  nc.innerHTML = '';
+  (state.nodes[key] || []).forEach(function(node, idx) {
+    nc.appendChild(makeNodeEl(key, node, idx));
+  });
+}
+
+function makeNodeEl(key, node, idx) {
+  var wrap = document.createElement('div');
+  wrap.className = 'node-wrap';
+  wrap.draggable = true;
+  wrap.dataset.key = key;
+  wrap.dataset.idx = idx;
+  wrap.addEventListener('dragstart', function(e) { startDrag(e, key, idx); });
+  wrap.addEventListener('dragend',   onDragEnd);
+
+  var inner;
+  if (key === 'svc') {
+    inner = document.createElement('div');
+    inner.className = 'svc-card';
+  } else if (key === 'ti') {
+    inner = document.createElement('div');
+    inner.className = 'ti-node';
+  } else {
+    inner = document.createElement('div');
+    inner.className = 'node ' + (nodeClass[key] || '');
+    if (key === 'data') {
+      inner.style.cssText = 'height:52px;display:flex;flex-direction:column;justify-content:center;align-items:center;';
+    }
+  }
+
+  var nt = document.createElement('div');
+  nt.className = 'nt';
+  nt.textContent = node.title;
+  nt.addEventListener('dblclick', function(e) {
+    e.stopPropagation();
+    makeEditable(nt, function(val) { state.nodes[key][idx].title = val; saveState(); });
+  });
+
+  var ns = document.createElement('div');
+  ns.className = 'ns';
+  ns.textContent = node.subtitle;
+  ns.addEventListener('dblclick', function(e) {
+    e.stopPropagation();
+    makeEditable(ns, function(val) { state.nodes[key][idx].subtitle = val; saveState(); });
+  });
+
+  inner.appendChild(nt);
+  inner.appendChild(ns);
+  wrap.appendChild(inner);
+
+  // Delete button
+  var del = document.createElement('button');
+  del.className = 'del-btn';
+  del.title = 'Delete node';
+  del.innerHTML = '&times;';
+  del.addEventListener('click', function(e) {
+    e.stopPropagation();
+    state.nodes[key].splice(idx, 1);
+    saveState();
+    renderLayer(key);
+  });
+  wrap.appendChild(del);
+
+  return wrap;
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Inline editing
+// ─────────────────────────────────────────────────────────────────────
+function makeEditable(el, onSave) {
+  var original = el.textContent;
+  el.contentEditable = 'true';
+  el.focus();
+  var r = document.createRange();
+  r.selectNodeContents(el);
+  var s = window.getSelection();
+  s.removeAllRanges();
+  s.addRange(r);
+
+  function commit() {
+    el.contentEditable = 'false';
+    var val = el.textContent.trim();
+    if (!val) { el.textContent = original; return; }
+    onSave(val);
+    cleanup();
+  }
+  function cancel() {
+    el.contentEditable = 'false';
+    el.textContent = original;
+    cleanup();
+  }
+  function keyHandler(e) {
+    if (e.key === 'Enter')  { e.preventDefault(); commit(); }
+    if (e.key === 'Escape') { cancel(); }
+  }
+  function cleanup() {
+    el.removeEventListener('blur',    commit);
+    el.removeEventListener('keydown', keyHandler);
+  }
+  el.addEventListener('blur',    commit);
+  el.addEventListener('keydown', keyHandler);
+}
+
+function editLabel(e, key) {
+  var el = e.target;
+  makeEditable(el, function(val) {
+    state.labels[key] = val;
+    saveState();
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Add / hide form
+// ─────────────────────────────────────────────────────────────────────
+function showAddForm(key) {
+  document.getElementById('af-' + key).classList.remove('hidden');
+  document.getElementById('aft-' + key).focus();
+}
+function hideAddForm(key) {
+  document.getElementById('af-' + key).classList.add('hidden');
+  document.getElementById('aft-' + key).value = '';
+  document.getElementById('afs-' + key).value = '';
+}
+function addNode(key) {
+  var title = document.getElementById('aft-' + key).value.trim();
+  var sub   = document.getElementById('afs-' + key).value.trim();
+  if (!title) { document.getElementById('aft-' + key).focus(); return; }
+  state.nodes[key].push({ title: title, subtitle: sub });
+  saveState();
+  hideAddForm(key);
+  renderLayer(key);
+}
+
+// Enter key in add forms
+document.addEventListener('keydown', function(e) {
+  if (e.key !== 'Enter') return;
+  var active = document.activeElement;
+  if (!active) return;
+  var form = active.closest('.add-form');
+  if (!form) return;
+  var key = form.id.replace('af-', '');
+  addNode(key);
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// Drag & Drop
+// ─────────────────────────────────────────────────────────────────────
+var dragKey = null, dragIdx = null, dropKey = null;
+var placeholder = null;
+
+function startDrag(e, key, idx) {
+  dragKey = key; dragIdx = idx;
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', key + ':' + idx);
+  var el = e.currentTarget;
+  setTimeout(function() { el.classList.add('dragging'); }, 0);
+}
+
+function onDragEnd() {
+  document.querySelectorAll('.dragging').forEach(function(el) { el.classList.remove('dragging'); });
+  document.querySelectorAll('.drag-over-target').forEach(function(el) { el.classList.remove('drag-over-target'); });
+  removePlaceholder();
+  dragKey = null; dragIdx = null; dropKey = null;
+}
+
+function wireDrop(key) {
+  var nc = document.getElementById('nc-' + key);
+  if (!nc) return;
+  nc.addEventListener('dragover',  function(e) { handleDragOver(e, key, nc); });
+  nc.addEventListener('dragleave', function(e) { handleDragLeave(e, key, nc); });
+  nc.addEventListener('drop',      function(e) { handleDrop(e, key, nc); });
+}
+
+function handleDragOver(e, key, nc) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  dropKey = key;
+  nc.classList.add('drag-over-target');
+
+  // Show placeholder at insertion point
+  if (!placeholder) {
+    placeholder = document.createElement('div');
+    placeholder.className = 'drop-placeholder';
+  }
+
+  var afterEl = getDragAfterElement(nc, e.clientY);
+  if (afterEl) { nc.insertBefore(placeholder, afterEl); }
+  else          { nc.appendChild(placeholder); }
+}
+
+function handleDragLeave(e, key, nc) {
+  if (nc.contains(e.relatedTarget)) return;
+  nc.classList.remove('drag-over-target');
+  dropKey = null;
+  removePlaceholder();
+}
+
+function handleDrop(e, key, nc) {
+  e.preventDefault();
+  nc.classList.remove('drag-over-target');
+
+  if (dragKey === null || dragIdx === null) { removePlaceholder(); return; }
+
+  // Calculate drop index from placeholder position
+  var dropIdx = getDropIndex(nc);
+
+  // Extract the node
+  var node = state.nodes[dragKey].splice(dragIdx, 1)[0];
+
+  // Adjust index if same layer and moving down
+  if (dragKey === key && dropIdx > dragIdx) dropIdx--;
+
+  // Ensure target layer array exists
+  if (!state.nodes[key]) state.nodes[key] = [];
+  state.nodes[key].splice(dropIdx, 0, node);
+
+  saveState();
+  removePlaceholder();
+
+  // Re-render affected layers
+  if (dragKey !== key) renderLayer(dragKey);
+  renderLayer(key);
+
+  dragKey = null; dragIdx = null; dropKey = null;
+}
+
+function getDragAfterElement(container, y) {
+  var els = Array.from(container.querySelectorAll('.node-wrap:not(.dragging)'));
+  return els.reduce(function(closest, el) {
+    var box = el.getBoundingClientRect();
+    var offset = y - box.top - box.height / 2;
+    if (offset < 0 && offset > closest.offset) return { offset: offset, el: el };
+    return closest;
+  }, { offset: Number.NEGATIVE_INFINITY }).el;
+}
+
+function getDropIndex(nc) {
+  if (!placeholder || !placeholder.parentNode) return (state.nodes[dropKey] || []).length;
+  var children = Array.from(nc.children);
+  var phIdx = children.indexOf(placeholder);
+  var count = 0;
+  for (var i = 0; i < phIdx; i++) {
+    if (children[i].classList && children[i].classList.contains('node-wrap')) count++;
+  }
+  return count;
+}
+
+function removePlaceholder() {
+  if (placeholder && placeholder.parentNode) placeholder.parentNode.removeChild(placeholder);
+  placeholder = null;
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Reset
+// ─────────────────────────────────────────────────────────────────────
+function resetToDefaults() {
+  if (!confirm('Reset everything to defaults? Your current changes will be lost.')) return;
+  state = JSON.parse(JSON.stringify(defaultData));
+  saveState();
+  renderAll();
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Export
+// ─────────────────────────────────────────────────────────────────────
+function exportHTML() {
+  // Temporarily remove contenteditable attrs before export
+  document.querySelectorAll('[contenteditable]').forEach(function(el) { el.removeAttribute('contenteditable'); });
+  var html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+  document.querySelectorAll('.nt,.ns,.ll,.svc-col-label-el').forEach(function(el) {
+    // restore after serialise (no-op since already snapped)
+  });
+  var blob = new Blob([html], { type: 'text/html' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'Fortinet Deck Editor.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Init
+// ─────────────────────────────────────────────────────────────────────
+renderAll();
+</script>
+</body>
+</html>

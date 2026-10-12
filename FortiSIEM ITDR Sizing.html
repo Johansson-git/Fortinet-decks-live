@@ -265,8 +265,7 @@ window.addEventListener("error",function(e){var d=document.createElement("div");
     wsv:{name:'Workstations: service installs (System 7045)',g:'host',drv:'ws',rate:[0.5,1,2],kb:1.5,opt:'ws',base:'sv'},
     ws4:{name:'Workstations: PowerShell 4104',g:'host',drv:'ws',rate:[100,200,300],kb:3,opt:'wsps',base:'s4'},
     fg:{name:'FortiGate: VPN and admin authentication',g:'any',drv:'user',rate:[5,10,20],kb:0.6,free:1},
-    dc:{name:'FortiDeceptor alerts',g:'any',drv:'tenant',rate:[50,200,1000],kb:1.5},
-    dx:{name:'Defender XDR alerts and incidents',g:'any',drv:'tenant',rate:[20,100,500],kb:4}
+    dc:{name:'FortiDeceptor alerts',g:'any',drv:'tenant',rate:[50,200,1000],kb:1.5}
   };
   var PROC=['pc','s4','wpc','ws4'], PROCN=['pc','wpc'], LSASS=['s2','ws2'], SVC=['sv','wsv'];
   // tag: n = new 7.6.0 ITDR, r = existing rule re-tagged ITDR, o = other existing rule. dis = disabled by default. w = rule count for grouped entries
@@ -334,12 +333,9 @@ window.addEventListener("error",function(e){var d=document.createElement("div");
       flag:'Alerts only, so log volume is small. Covers what native logs detect poorly, such as stolen or forged credentials used against a decoy.',rules:[
       R('FortiDeceptor: Successful RDP Login to Decoy',['dc'],'o'),R('FortiDeceptor: Successful SSH Login to Decoy',['dc'],'o'),
       R('FortiDeceptor: Successful SAMBA Operations to Decoy',['dc'],'o'),R('FortiDeceptor: Successful FTP/TFTP Operations to Decoy',['dc'],'o'),
-      R('FortiDeceptor: IPS Attack to Decoy',['dc'],'o')]},
-    {id:'xdr',req:'Microsoft Defender XDR, with Defender for Identity for identity alerts. Microsoft security licences (E5 Security or add-ons).',t:'Defender XDR alerts, including Defender for Identity',d:'Alerts and incidents from Microsoft Defender XDR, where Defender for Identity detections arrive, correlated in FortiSIEM by MITRE tactic.',src:['dx'],on:0,
-      flag:'These rules work per alert category, not per Defender for Identity detection. None is tagged ITDR.',rules:[
-      R('MS Defender XDR alert rules: high and medium for 16 MITRE tactics',['dx'],'o',{w:30}),R('MS Defender XDR: High and Medium Severity Incident Detected',['dx'],'o',{w:2})]}
+      R('FortiDeceptor: IPS Attack to Decoy',['dc'],'o')]}
   ];
-  var SRCNAMES={ea:'Entra audit',ei:'Entra sign-ins',eh:'Azure Event Hub',o3:'O365 API',en:'Entra non-interactive',a4:'DC accounts',a6:'DC 5136',a2:'DC Kerberos',a5:'DC 4662',a1:'DC logons',a8:'DC 4776',ms:'Server logons',ca:'CA audit',iis:'IIS',pc:'process creation',s2:'Sysmon 10',sv:'System 7045',s4:'PowerShell 4104',wpc:'process creation (WS)',ws2:'Sysmon 10 (WS)',wsv:'System 7045 (WS)',ws4:'PowerShell 4104 (WS)',fg:'FortiGate (not counted)',dx:'Defender XDR',dc:'FortiDeceptor'};
+  var SRCNAMES={ea:'Entra audit',ei:'Entra sign-ins',eh:'Azure Event Hub',o3:'O365 API',en:'Entra non-interactive',a4:'DC accounts',a6:'DC 5136',a2:'DC Kerberos',a5:'DC 4662',a1:'DC logons',a8:'DC 4776',ms:'Server logons',ca:'CA audit',iis:'IIS',pc:'process creation',s2:'Sysmon 10',sv:'System 7045',s4:'PowerShell 4104',wpc:'process creation (WS)',ws2:'Sysmon 10 (WS)',wsv:'System 7045 (WS)',ws4:'PowerShell 4104 (WS)',fg:'FortiGate (not counted)',dc:'FortiDeceptor'};
 
   var G={};
   function sc(){return +document.querySelector('input[name=sc]:checked').value}

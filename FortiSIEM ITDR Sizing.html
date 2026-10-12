@@ -286,12 +286,12 @@ window.addEventListener("error",function(e){var d=document.createElement("div");
       R('Azure Entra ID: MFA Bypass Or Satisfied By Claim',['ei'],'n'),R('Azure Entra ID: Conditional Access Disabled',['ea'],'n',{m:'fires on any policy update or delete'}),
       R('Azure Conditional Access Policy Modified',['eh'],'o'),R('Multi-Factor Authentication Disabled for an Azure User',['eh'],'o')]},
     {id:'travel',req:'VPN logs from FortiGate or another VPN gateway, if used (licensed separately, not counted).',t:'Suspicious logins and stolen credentials',d:'Logins from two places too far apart for the time between them, and Windows users whose daily login pattern or volume suddenly departs from their normal profile.',src:['ei','fg','a1'],on:1,
-      flag:'These rules fire on events from FortiSIEM\'s identity and profiling engines, not on log events in the rule. Impossible travel needs public source IPs (cloud sign-ins, VPN). The two Windows rules learn a per-user profile first, so expect a learning period.',rules:[
+      rules:[
       R('Sudden User Location Change',['ei','o3','fg'],'r',{m:'inputs from identityDef.xml'}),
       R('Sudden Windows User Login Pattern Change',['a1','ms'],'o',{m:'compares with a learned daily profile'}),
       R('Sudden Increase in Windows User Login Volume',['a1','ms'],'o',{m:'compares with a learned daily profile'})]},
     {id:'brute',req:'VPN logs from FortiGate or another VPN gateway, if used (licensed separately, not counted).',t:'Brute force against an account',d:'Repeated failed logons against one account from one source, especially when followed by a success, plus account lockouts.',src:['a1','a2','a8','ms','ei','en','o3','fg'],on:1,
-      flag:'A failure and the success after it must be logged by the same machine: the same server (4625 then 4624) or the same DC (4771 or 4776 failure, then 4768 or 4776 success). Entra sign-ins, success and failure, are in the Application Logon groups, so the application rules catch Entra brute force; Office 365 adds its own rules.',rules:[
+      rules:[
       R('Brute Force Host Login Success',['a1','a2','a8','ms'],'r',{m:'5 or more failures, then a success, within 15 minutes'}),
       R('Multiple Logon Failures: Server',['ms'],'r'),R('Multiple Logon Failures: Domain',['a2','a8'],'r',{dis:1}),
       R('Account Locked: Server',['a1','ms'],'r',{m:'4740 from DCs and member servers; the DC must be in the CMDB Server group'}),R('Account Locked: Domain',['a1'],'r',{dis:1,m:'duplicates the Server rule for DCs if enabled'}),
@@ -301,7 +301,7 @@ window.addEventListener("error",function(e){var d=document.createElement("div");
       R('Multiple Logon Failures: Misc App',['ei','en'],'r',{m:'5 or more application logon failures per user in 10 minutes'}),
       R('Suspicious Logon Failure without following successful login',['a1','a2','a8','ms','ei','fg'],'r',{m:'fires after another failure rule when no success follows within 2 hours'})]},
     {id:'spray',t:'Password spraying',d:'One source trying a few passwords across many accounts on a host, or across many hosts.',src:['a1','ms','o3'],on:1,
-      flag:'Only the Device Logon Failure group counts here, mainly 4625. Kerberos-only spraying (4771 on the DCs) and Entra spraying (Entra failures are in the Application Logon Failure group) are not detected by any built-in rule.',rules:[
+      rules:[
       R('Multiple Logon Failures: Same Src and Dest and Multiple Accounts',['a1','ms'],'r',{m:'3 or more accounts from one source to one host in an hour'}),
       R('Multiple Logon Failures: Same Src and Multiple Dest',['a1','ms'],'r',{m:'10 or more hosts from one source in an hour'}),
       R('Office365: Brute Force Login Attempts - Same Source',['o3'],'r',{m:'5 or more failures from one source IP in 15 minutes'})]},

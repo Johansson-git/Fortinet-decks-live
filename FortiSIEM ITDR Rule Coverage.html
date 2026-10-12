@@ -1,0 +1,589 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ITDR log sizing dashboard: Entra ID and Active Directory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light dark;
+  --bg:#EEF1F4; --surface:#FFFFFF; --ink:#16212B; --muted:#58646F;
+  --rule:#D3DAE1; --rule2:#A9B4BF;
+  --in-bg:#FFF6CC; --in-ink:#0A4DB5; --in-rule:#E0D184;
+  --t1:#1B7F5F; --t2:#2F6FDE; --t3:#B9770E; --ws:#7B4FD1; --opt:#7B8794; --ext:#0E7C86; --tp:#A3456B;
+  --focus:#0A4DB5;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#10161C; --surface:#18212A; --ink:#E6ECF1; --muted:#9AA7B3;
+    --rule:#2A3541; --rule2:#44525F;
+    --in-bg:#3A3410; --in-ink:#8DB8FF; --in-rule:#6B5F1F;
+    --t1:#4FC79D; --t2:#6C9CFF; --t3:#E0A84A; --ws:#A98BEF; --opt:#9AA7B3; --ext:#4CC3CC; --tp:#E07FA4;
+    --focus:#8DB8FF;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#10161C; --surface:#18212A; --ink:#E6ECF1; --muted:#9AA7B3;
+  --rule:#2A3541; --rule2:#44525F;
+  --in-bg:#3A3410; --in-ink:#8DB8FF; --in-rule:#6B5F1F;
+  --t1:#4FC79D; --t2:#6C9CFF; --t3:#E0A84A; --ws:#A98BEF; --opt:#9AA7B3; --ext:#4CC3CC; --tp:#E07FA4;
+  --focus:#8DB8FF;
+}
+*{box-sizing:border-box}
+html{height:100%;background:var(--bg);scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);
+  font:15px/1.5 "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  font-variant-numeric:tabular-nums}
+.shell{max-width:1240px;margin:0 auto;padding:26px 20px 56px}
+h1{font-size:26px;line-height:1.2;font-weight:600;letter-spacing:-.01em;margin:0 0 4px}
+h2{font-size:17px;font-weight:600;margin:0 0 10px}
+.sub{color:var(--muted);margin:0 0 22px;max-width:74ch}
+.layout{display:grid;grid-template-columns:300px minmax(0,1fr);gap:28px;align-items:start}
+@media (max-width:1000px){.layout{grid-template-columns:minmax(0,1fr)}}
+.panel{position:sticky;top:calc(14px + env(safe-area-inset-top,0px));background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:16px}
+@media (max-width:1000px){.panel{position:static}}
+.panel h2{margin-bottom:8px}
+.group{margin:0 0 18px}
+.group:last-child{margin-bottom:0}
+.gl{font-size:13px;font-weight:600;margin-bottom:6px}
+
+.seg{display:flex;border:1px solid var(--rule2);border-radius:6px;overflow:hidden}
+.seg label{position:relative;flex:1;cursor:pointer;text-align:center}
+.seg input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
+.seg span{display:block;padding:8px 6px;font-size:14px;background:var(--surface);border-right:1px solid var(--rule2)}
+.seg label:last-child span{border-right:0}
+.seg input:checked + span{background:var(--ink);color:var(--surface);font-weight:600}
+.seg input:focus-visible + span{outline:2px solid var(--focus);outline-offset:-2px}
+.note{font-size:13px;color:var(--muted);margin:6px 0 0;line-height:1.4}
+
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px 10px}
+.field label{display:block;font-size:12.5px;color:var(--muted);line-height:1.25;margin-bottom:3px;min-height:31px}
+.in{width:100%;font:inherit;font-variant-numeric:tabular-nums;text-align:right;color:var(--in-ink);
+  background:var(--in-bg);border:1px solid var(--in-rule);border-radius:4px;padding:5px 8px}
+.in:focus-visible,input[type=checkbox]:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.in:disabled{opacity:.45}
+details.adv{border-top:1px solid var(--rule);padding-top:10px;margin-top:4px}
+details.adv summary{cursor:pointer;font-size:13px;font-weight:600}
+details.adv .fields{margin-top:10px}
+.chk{display:flex;gap:8px;align-items:flex-start;font-size:13px;margin-top:10px}
+.chk input{margin-top:3px}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--rule2);border-radius:4px;padding:6px 12px;cursor:pointer}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));border-top:2px solid var(--ink);margin-bottom:26px}
+.kpi{padding:14px 18px 6px 0}
+.kpi + .kpi{padding-left:18px;border-left:1px solid var(--rule)}
+@media (max-width:620px){.kpi + .kpi{border-left:0;padding-left:0}}
+.kv{font-size:32px;line-height:1.05;font-weight:600;letter-spacing:-.02em;overflow-wrap:anywhere}
+.kv small{display:block;margin-top:3px;font-size:13px;font-weight:400;color:var(--muted);letter-spacing:0}
+.kl{font-size:13px;color:var(--muted);margin-top:4px}
+
+.cover{margin:-4px 0 12px;font-size:14px}
+.cover b{font-size:20px;font-weight:600}
+.cover span{color:var(--muted)}
+.tiers{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-bottom:8px}
+.tcard{background:var(--surface);border:1px solid var(--rule);border-top:4px solid var(--c);border-radius:6px;padding:13px 14px 14px;display:flex;flex-direction:column;gap:8px}
+.tcard.off{opacity:.55}
+.th{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.tn{font-weight:600}
+.tn small{display:block;font-weight:400;color:var(--muted);font-size:12.5px}
+.tcheck{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);white-space:nowrap;cursor:pointer}
+.tnums{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tnums b{display:block;font-size:22px;line-height:1.15;font-weight:600;letter-spacing:-.01em}
+.tnums span{display:block;font-size:12.5px;color:var(--muted)}
+.tbar{height:6px;border-radius:3px;background:var(--rule);overflow:hidden}
+.tbar i{display:block;height:100%;background:var(--c)}
+.tp{font-size:13px;margin:0;line-height:1.4}
+.tsrc{font-size:12.5px;color:var(--muted);margin:0;line-height:1.4}
+.fine{font-size:13px;color:var(--muted);margin:2px 0 26px;max-width:90ch}
+
+.sec{margin:0 0 28px}
+.top{display:grid;gap:7px}
+.trow{display:grid;grid-template-columns:minmax(150px,230px) minmax(0,1fr) 84px;gap:12px;align-items:center;font-size:13.5px}
+.trow .tb{height:10px;background:var(--rule);border-radius:2px;overflow:hidden}
+.trow .tb i{display:block;height:100%;background:var(--c)}
+.trow .tv{text-align:right}
+@media (max-width:560px){.trow{grid-template-columns:minmax(0,1fr) 70px}.trow .tb{grid-column:1 / -1;order:3}}
+
+.tablewrap{overflow-x:auto;border-top:2px solid var(--ink);background:var(--surface)}
+table{width:100%;border-collapse:collapse;min-width:900px}
+th{font-size:12px;font-weight:500;color:var(--muted);text-align:left;padding:8px 10px;border-bottom:1px solid var(--rule2);white-space:nowrap}
+th.r,td.num{text-align:right}
+td.num{white-space:nowrap}
+td{padding:7px 10px;border-bottom:1px solid var(--rule);vertical-align:middle}
+td.cc{width:32px;padding-right:0}
+.nm{font-weight:500}
+.evn{font-size:12px;color:var(--muted);line-height:1.35}
+.feeds{font-size:12.5px;color:var(--muted);line-height:1.35;max-width:38ch}
+.tag{display:inline-block;padding:0 7px;border-radius:3px;font-size:12px;font-weight:600;color:#fff;background:var(--c);white-space:nowrap}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .tag{color:#10161C}}
+:root[data-theme="dark"] .tag{color:#10161C}
+tr.off td:not(.cc){opacity:.4}
+.ed{display:none}
+table.show-ed .ed{display:table-cell}
+td.ed .in{width:88px}
+.sbar{display:inline-block;vertical-align:middle;width:70px;height:6px;border-radius:3px;background:var(--rule);overflow:hidden;margin-right:6px}
+.sbar i{display:block;height:100%;background:var(--c)}
+.pc{display:inline-block;min-width:32px;text-align:right;font-size:12px;color:var(--muted)}
+.tools{display:flex;gap:16px;align-items:center;margin:0 0 8px;flex-wrap:wrap}
+
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:26px;margin-top:6px}
+ul.ls{margin:0;padding-left:18px}
+ul.ls li{margin:0 0 8px;max-width:70ch}
+.foot{color:var(--muted);font-size:13px;max-width:86ch;margin-top:24px}
+</style>
+</head>
+<body>
+<div class="shell">
+  <h1>ITDR log sizing: Entra ID and Active Directory</h1>
+  <p class="sub">Which of the 57 new FortiSIEM 7.6.0 ITDR rules are worth running, which log sources they need, and what that costs per day. Sources are confirmed from the 7.6.0 rule definitions. Pick a scenario, change the environment and process source, and switch tiers on and off.</p>
+
+  <div class="layout">
+    <aside class="panel" aria-label="Controls">
+      <div class="group">
+        <div class="gl">Scenario</div>
+        <div class="seg" role="radiogroup" aria-label="Scenario">
+          <label><input type="radio" name="sc" value="low" autocomplete="off"><span>Low</span></label>
+          <label><input type="radio" name="sc" value="med" autocomplete="off"><span>Medium</span></label>
+          <label><input type="radio" name="sc" value="high" autocomplete="off" checked><span>High</span></label>
+        </div>
+        <p class="note" id="sc-note"></p>
+      </div>
+
+      <div class="group">
+        <div class="gl">Environment</div>
+        <div class="seg" role="radiogroup" aria-label="Environment type">
+          <label><input type="radio" name="mode" value="cloud" autocomplete="off"><span>Cloud</span></label>
+          <label><input type="radio" name="mode" value="onprem" autocomplete="off"><span>On-prem</span></label>
+          <label><input type="radio" name="mode" value="hybrid" autocomplete="off" checked><span>Hybrid</span></label>
+        </div>
+        <p class="note" id="mode-note"></p>
+      </div>
+
+      <div class="group">
+        <div class="gl">Process creation from</div>
+        <div class="seg" role="radiogroup" aria-label="Process creation source">
+          <label><input type="radio" name="pc" value="psys" autocomplete="off" checked><span>Sysmon</span></label>
+          <label><input type="radio" name="pc" value="p4688" autocomplete="off"><span>4688</span></label>
+          <label><input type="radio" name="pc" value="both" autocomplete="off"><span>Both</span></label>
+        </div>
+        <p class="note" id="pc-note"></p>
+      </div>
+
+      <div class="group">
+        <div class="gl">Third-party sources</div>
+        <div id="tp-list"></div>
+        <p class="note">Off by default. Switch on only what the customer runs.</p>
+      </div>
+
+      <div class="group">
+        <div class="fields" id="main-fields"></div>
+      </div>
+
+      <details class="adv">
+        <summary>Advanced assumptions</summary>
+        <div class="fields" id="adv-fields"></div>
+        <label class="chk"><input type="checkbox" id="g-dcMult" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" checked><span>Multiply AD rates by the number of DCs. This is padding, not a real duplicate between DCs.</span></label>
+      </details>
+
+      <div class="group" style="margin-top:16px"><button type="button" id="reset">Reset everything</button></div>
+    </aside>
+
+    <main>
+      <section class="kpis" aria-live="polite">
+        <div class="kpi"><div class="kv"><span id="k-gb">0</span><small>GB/day raw</small></div><div class="kl" id="k-mb"></div></div>
+        <div class="kpi"><div class="kv"><span id="k-ev">0</span><small>events/day</small></div><div class="kl" id="k-avg"></div></div>
+        <div class="kpi"><div class="kv"><span id="k-peak">0</span><small>peak EPS</small></div><div class="kl" id="k-biz"></div></div>
+        <div class="kpi"><div class="kv"><span id="k-ret">0</span><small>GB stored</small></div><div class="kl" id="k-retl"></div></div>
+      </section>
+
+      <section class="sec">
+        <h2>Tiers: what each one buys and what it costs</h2>
+        <p class="cover"><b id="k-rules">0</b> of 57 rules supported by the current selection <span id="k-rulesl"></span></p>
+        <div class="tiers" id="tiers"></div>
+        <p class="fine">Not sized: 3 Linux rules. <code>/etc/shadow</code> access and root-equivalent account read the Linux Collector process log or auditd (either works; auditd also catches file access that never shows in a command line). PAM change reads Linux Collector file integrity monitoring. The rule-to-source mapping is confirmed from the 7.6.0 rule definitions; tiers, rates and sizes are still my estimates.</p>
+      </section>
+
+      <section class="sec">
+        <h2>Largest sources in the current selection</h2>
+        <div class="top" id="top"></div>
+      </section>
+
+      <section class="sec">
+        <h2>Log sources and estimates</h2>
+        <div class="tools">
+          <label class="chk" style="margin:0"><input type="checkbox" id="show-ed" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other"><span>Show rate and event size editors</span></label>
+        </div>
+        <div class="tablewrap">
+          <table id="tbl">
+            <thead>
+              <tr>
+                <th></th><th>Log source</th><th>Tier</th><th>Feeds</th>
+                <th class="r ed">Rate</th><th class="ed">Per</th><th class="r ed">Size (KB)</th>
+                <th class="r">Events/day</th><th class="r">Volume/day</th><th>Share</th>
+              </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="sec two">
+        <div>
+          <h2>What the work established</h2>
+          <ul class="ls" id="find"></ul>
+        </div>
+        <div>
+          <h2>Verify before committing</h2>
+          <ul class="ls" id="verify"></ul>
+        </div>
+      </section>
+
+      <p class="foot">Low, Medium and High are my estimates, not measurements. They change event rates, server and risky-user shares and the burst factor; event sizes stay the same. Sizes are uncompressed bytes as received. Stored size depends on how FortiSIEM writes events, so replace the percentage with your sizing tool's per-event figure. Peak EPS is the business-hours rate times the burst factor.</p>
+    </main>
+  </div>
+</div>
+
+<script>
+window.addEventListener("error",function(e){var d=document.createElement("div");d.setAttribute("role","alert");d.style.cssText="margin:12px;padding:10px 12px;border:1px solid #C0392B;border-radius:4px;color:#C0392B;font-size:14px";d.textContent="Script error: "+(e.message||"unknown");document.body.insertBefore(d,document.body.firstChild)});
+(function(){
+  var PM=' autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other"';
+  var SC={
+    low:{name:'Low',note:'Lean, tuned collection in a quiet tenant. A best-case floor.',cpu:1.1,srvShare:10,riskyPct:1,burst:3,bizShare:70},
+    med:{name:'Medium',note:'A typical tenant with Sysmon tuned to the ITDR rules.',cpu:1.3,srvShare:15,riskyPct:3,burst:4,bizShare:75},
+    high:{name:'High',note:'Worst case, the ceiling used throughout the sizing work. Oversized on purpose.',cpu:1.5,srvShare:20,riskyPct:10,burst:5,bizShare:80}
+  };
+  var KEEP={users:200,dcs:2,cas:2,retention:90,ratio:10,pollMin:5,bizHours:10,linuxSrv:0};
+  var MODES={
+    hybrid:'Every user exists in both systems, so one action can create an event in Entra and another on a DC. Both are counted.',
+    cloud:'Entra ID only. No domain controllers, so AD rows and the DC inputs are excluded.',
+    onprem:'Active Directory only. No Entra ID, so Entra rows and the risky-user poller are excluded.'
+  };
+  var MAIN=[['users','Users'],['dcs','Domain controllers'],['cas','CA servers (0 = no AD CS)'],['retention','Retention (days)']];
+  var ADV=[['cpu','Computers per user'],['srvShare','Servers among computers (%)'],['riskyPct','Users flagged risky (%)'],['pollMin','Risky poll interval (min)'],['bizShare','Events in business hours (%)'],['bizHours','Business hours per day'],['burst','Peak burst factor (times)'],['ratio','Stored size vs raw (%)'],['linuxSrv','Linux servers (for Linux auth syslog)']];
+  var SCOPE={dcs:'dir',cas:'dir',riskyPct:'entra',pollMin:'entra'};
+
+  var CARDS=[
+    {k:'T1',c:'--t1',tier:'Tier 1',title:'Day one',
+     rules:'22 rules, plus 11 AD CS rules if you run AD CS',
+     why:'Rare, high-fidelity changes: privileged role adds, Conditional Access changes, federation and domain changes, KRBTGT reset, AdminSDHolder, RBCD, Shadow Credentials, schema and trust changes, mass account changes, Kerberoasting. Of the 11 AD CS rules, 8 read 5136 on the DCs, 2 read the CA audit log and 1 reads IIS logs.',
+     src:'Entra audit and interactive sign-ins; DC Security log (account and group IDs, 4769, 5136, 4706/4707/4716); CA audit 4882 and 4890-4894; IIS on the Web Enrollment server'},
+    {k:'T2',c:'--t2',tier:'Tier 2',title:'Host telemetry on servers',
+     rules:'21 rules, 3 of them AD CS command rules',
+     why:'18 process rules (Mimikatz, Rubeus, SharpHound, Secretsdump, comsvcs, Procdump, registry hive save, SSP, authentication packages, certutil ESC6/10/16, and the tool-name rules), the two LSASS access rules, and PsExec. Each process rule accepts Security 4688 or Sysmon 1.',
+     src:'Process creation (4688 with command line, or Sysmon 1), Sysmon 10, System 7045 on DCs, CA and member servers'},
+    {k:'T3',c:'--t3',tier:'Tier 3',title:'PowerShell script blocks',
+     rules:'No extra rules; a second source for 15',
+     why:'15 of the 18 process rules also accept 4104. It catches tools run inside PowerShell that never start a process with a telling command line. No new rule needs it on its own.',
+     src:'PowerShell Operational 4104 on servers'},
+    {k:'WS',c:'--ws',tier:'Tier 3',title:'Workstation telemetry',
+     rules:'Same rules, collected on every workstation',
+     why:'The largest volume by far. The 21 host rules go blind on any host left out, and PsExec targets are often workstations. An EDR does not replace it: FortiSIEM reads EDR alerts through separate rules. Off by default.',
+     src:'Process creation, Sysmon 10, 4104 and System 7045 on workstations'},
+    {k:'OPT',c:'--opt',tier:'Optional',title:'Not needed by the 57',
+     rules:'0 of the 57 rules',
+     why:'No new ITDR rule reads these. Some feed existing rules that Fortinet re-tagged as ITDR (4662 for DC Sync, Sysmon 12, logon events), so keep them if the goal is the whole ITDR category. Most Entra rows feed no rule in 7.6.0; non-interactive failures feed two application brute-force rules through their event-type group.',
+     src:'Entra Event Hub categories, risky-user poller, DC Security log, Sysmon registry events'}
+  ];
+  CARDS.push(
+    {k:'EXT',c:'--ext',tier:'Wider',title:'Identity coverage beyond the 57',
+     rules:'Feeds existing rules, not the 57',
+     why:'VPN and admin authentication on FortiGate (brute force then success, password spraying, logins from several countries at once, lockouts), PIM role adds and consent grants via the Azure Event Hub feed, local-account logons on member servers, and Defender XDR alerts, which carry Defender for Identity detections. FortiGate is shown but never added to volume: it is licensed separately.',
+     src:'FortiGate syslog, Azure Event Hub (AZURE_PYTHON_SDK), member-server Security log, Defender XDR Graph API; optionally O365 Management API and Linux auth syslog'},
+    {k:'TP',c:'--tp',tier:'3rd party',title:'Third-party sources',
+     rules:'Switch on per source in the side panel',
+     why:'Only relevant if the customer runs the product: CyberArk, AWS, Oracle OCI, Veeam, CrowdStrike, databases, Google Workspace. All off by default. Rates are rough placeholders; measure before quoting.',
+     src:'Each product\'s own integration'}
+  );
+  var TAGS={T1:'Tier 1',T2:'Tier 2',T3:'Tier 3',WS:'Tier 3',OPT:'Optional',EXT:'Wider',TP:'3rd party'};
+
+  // rate: [low, medium, high]. re = how many of the 244 existing rules Fortinet re-tagged as ITDR also read this source.
+  var ROWS=[
+    {id:'ei',g:'entra',card:'T1',name:'Interactive sign-ins',ev:'SignInLogs, interactive (MS-Entra-SignInLogs-Logon-success). Make sure the SignInLogs diagnostic category is on.',feeds:'MFA Bypass Or Satisfied By Claim. Its success and failure events are also in the Application Logon groups (Brute Force App Login Success, Multiple Logon Failures: Misc App, Suspicious Logon Failure without following successful login), and success is an input to the identity engine (identityDef.xml) for Sudden User Location Change.',re:4,drv:'user',rate:[5,10,15],kb:4},
+    {id:'ea',g:'entra',card:'T1',name:'Audit logs, all categories',ev:'MS-Entra-AuditLogs-* (RoleMgmt, ApplicationMgmt, GroupMgmt, Policy-Update, DirectoryMgmt)',feeds:'The ten Entra audit-log rules. No other 7.6.0 rule reads these types.',re:0,drv:'user',rate:[3,6,10],kb:3},
+    {id:'a2',g:'dir',dc:true,card:'T1',name:'Kerberos authentication',ev:'4769 (success) is what the new rule reads. 4768 and 4771 are read only by re-tagged rules (AS-REP roasting, PetitPotam, Kerberos manipulation); drop them to cut this row if scope is the 57.',feeds:'Kerberoasting Multiple SPNs: 10 or more distinct SPNs per user and source IP in 10 minutes',re:3,drv:'user',rate:[15,28,40],kb:2.5},
+    {id:'a4',g:'dir',dc:true,card:'T1',name:'Account and group management',ev:'Read by new rules: 4720, 4724, 4725, 4728, 4729, 4732, 4733, 4756, 4757. 4722, 4738 and 4740 are not read by any of the 57; low volume, so kept.',feeds:'Account created then added to privileged group, three mass-change rules, KRBTGT reset',re:4,drv:'user',rate:[3,5,8],kb:2.5},
+    {id:'a6',g:'dir',dc:true,card:'T1',name:'Directory object changes',ev:'5136 (13 rules) and 4706, 4707, 4716. 5137 is not read by any of the 57. Needs Directory Service Changes auditing and SACLs, including on CN=Public Key Services.',feeds:'AdminSDHolder, RBCD, Shadow Credentials, Schema, Domain Trust, and 8 AD CS rules: ESC1-5, ESC13, ESC14, Certificate Template Modified',re:4,drv:'user',rate:[1,2,3],kb:2.5},
+    {id:'ca',g:'dir',card:'T1',name:'AD CS certificate authority audit',ev:'4882 and 4890-4894 on the CA servers. Request and issue events (4886, 4887) are read by no 7.6.0 rule, so filter them out; that removes most CA volume.',feeds:'ESC7 CA Security Permissions Changed, CA Configuration Changed',re:0,drv:'caserver',rate:[5,10,20],kb:1.5},
+    {id:'iis',g:'dir',card:'T1',name:'IIS logs on the Web Enrollment server',ev:'IIS web requests (POST to /certsrv/certfnsh.asp or certnew.cer). Only if the AD CS Web Enrollment role is installed; untick otherwise.',feeds:'AD CS Web Enrollment Certificate Request',re:0,drv:'caserver',rate:[50,200,500],kb:0.5},
+    {id:'s0',g:'endp',pc:'p4688',card:'T2',name:'Servers: Security 4688 with command line',ev:'Audit Process Creation plus "Include command line in process creation events". Without the command line the rules stay silent.',feeds:'All 18 process rules, as an alternative to Sysmon 1. No other 7.6.0 rule reads 4688.',re:0,drv:'server',rate:[1000,2000,3000],kb:1.5},
+    {id:'s1',g:'endp',pc:'psys',card:'T2',name:'Servers: Sysmon process creation',ev:'Sysmon event 1 with command line, on DCs, CA and member servers',feeds:'All 18 process rules (4688 is the alternative). Also required by 89 re-tagged ITDR rules and about 1,100 Sigma rules.',re:89,drv:'server',rate:[1000,2000,3000],kb:2},
+    {id:'s2',g:'endp',card:'T2',name:'Servers: Sysmon LSASS access',ev:'Sysmon event 10, LSASS target only',feeds:'LSASS Access by Suspicious Process, Suspicious LSASS Process Access. The dump-tool rules read process creation, not this.',re:8,drv:'server',rate:[100,200,300],kb:1.5},
+    {id:'sv',g:'endp',card:'T2',name:'Servers: service installs',ev:'System log 7045 (Service Control Manager)',feeds:'PsExec Service Creation. Collect on the hosts PsExec targets.',re:1,drv:'server',rate:[1,3,5],kb:1.5},
+    {id:'s4',g:'endp',card:'T3',name:'Servers: PowerShell script blocks',ev:'Event 4104',feeds:'Second source for 15 of the 18 process rules; not accepted by comsvcs, Procdump or registry hive save',re:0,drv:'server',rate:[100,300,500],kb:3},
+    {id:'w0',g:'endp',pc:'p4688',card:'WS',name:'Workstations: Security 4688 with command line',ev:'Same as the server row',feeds:'Same rules as the server row',re:0,drv:'ws',rate:[1500,3000,5000],kb:1.5},
+    {id:'w1',g:'endp',pc:'psys',card:'WS',name:'Workstations: Sysmon process creation',ev:'Sysmon event 1',feeds:'Same rules as the server row',re:89,drv:'ws',rate:[1500,3000,5000],kb:2},
+    {id:'w2',g:'endp',card:'WS',name:'Workstations: Sysmon LSASS access',ev:'Sysmon event 10',feeds:'Same rules as the server row',re:8,drv:'ws',rate:[30,60,100],kb:1.5},
+    {id:'w5',g:'endp',card:'WS',name:'Workstations: service installs',ev:'System log 7045',feeds:'PsExec Service Creation',re:1,drv:'ws',rate:[0.5,1,2],kb:1.5},
+    {id:'w4',g:'endp',card:'WS',name:'Workstations: PowerShell script blocks',ev:'Event 4104',feeds:'Same rules as the server row',re:0,drv:'ws',rate:[100,200,300],kb:3},
+    {id:'a5',g:'dir',dc:true,card:'OPT',name:'Directory service access',ev:'4662. Needs a SACL on the domain object for the replication rights.',feeds:'No new rule; the ACL-change rules read 5136. Re-tagged rules need it: Mimikatz DC Sync, AD replication from non-machine account, DPAPI backup key, AD user enumeration.',re:4,drv:'user',rate:[1,3,5],kb:2.5},
+    {id:'s3',g:'endp',card:'OPT',name:'Servers: Sysmon registry changes',ev:'Sysmon events 12, 13 and 14',feeds:'No new rule. SSP Registration and Authentication Package Modified read command lines instead.',re:5,drv:'server',rate:[30,60,100],kb:1.5},
+    {id:'w3',g:'endp',card:'OPT',off:true,name:'Workstations: Sysmon registry changes',ev:'Sysmon events 12, 13 and 14. Off by default.',feeds:'No new rule',re:5,drv:'ws',rate:[30,60,100],kb:1.5},
+    {id:'pr',g:'poll',card:'OPT',name:'Risky user status',ev:'MS_GRAPH_RiskyUserStatus_ (HTTPS poller; needs Entra ID P2)',feeds:'Existing rule Microsoft Entra: Identity Protection Risky User Identified (severity 9). Not in Fortinet\'s ITDR set.',re:0,drv:'risky',rate:null,kb:1},
+    {id:'a1',g:'dir',dc:true,card:'OPT',name:'Logon and logoff',ev:'4624, 4625, 4634',feeds:'No new rule. Read by 2 re-tagged rules and by the logon event-type groups behind brute-force rules.',re:2,drv:'user',rate:[10,18,25],kb:2.5},
+    {id:'a3',g:'dir',dc:true,card:'OPT',name:'Privilege use',ev:'4672, 4673',feeds:'No 7.6.0 rule reads 4672; 4673 is read by one re-tagged rule',re:1,drv:'user',rate:[5,10,15],kb:2.5},
+    {id:'a7',g:'dir',dc:true,card:'OPT',name:'Computer account activity',ev:'Machine-account 4624, 4768, 4769. Exclude names ending in $ at collection; Kerberoasting is unaffected.',feeds:'No 7.6.0 rule keys on machine accounts',re:0,drv:'computer',rate:[40,90,150],kb:2.5},
+    {id:'en',g:'entra',card:'OPT',name:'Non-interactive user sign-ins',ev:'MS-Entra-NonInteractiveUserSignInLogs',feeds:'No rule names it, but its failure events are in the Application Logon Failure group, read by Brute Force App Login Success and Multiple Logon Failures: Misc App.',re:2,drv:'user',rate:[40,80,150],kb:4},
+    {id:'es',g:'entra',card:'OPT',name:'Service principal sign-ins',ev:'MS-Entra-ServicePrincipalSignInLogs',feeds:'No rule in all of 7.6.0 reads it',re:0,drv:'tenant',rate:[2000,5000,10000],kb:3},
+    {id:'em',g:'entra',card:'OPT',name:'Managed identity sign-ins',ev:'MS-Entra-ManagedIdentitySignInLogs',feeds:'No rule in all of 7.6.0 reads it',re:0,drv:'tenant',rate:[500,2000,5000],kb:3},
+    {id:'ep',g:'entra',card:'OPT',name:'Provisioning logs',ev:'MS-Entra-ProvisioningLogs-',feeds:'No rule in all of 7.6.0 reads it',re:0,drv:'user',rate:[2,5,10],kb:4},
+    {id:'eg',g:'entra',card:'OPT',name:'Microsoft Graph activity',ev:'MS-Entra-MicrosoftGraphActivity',feeds:'No rule in all of 7.6.0 reads it; the most volatile Entra log',re:0,drv:'user',rate:[50,200,500],kb:2}
+  ];
+
+  ROWS=ROWS.concat([
+    {id:'fg',g:'endp',card:'EXT',free:true,name:'FortiGate: VPN and admin authentication',ev:'FortiGate syslog, authentication events only. Counted here for information; not added to any total because FortiGate logs are licensed separately.',feeds:'Brute force then success, password spraying across accounts, concurrent logins from several countries or cities, network-device lockouts. VPN tunnel-up events also feed Sudden User Location Change via identityDef.xml.',re:18,drv:'user',rate:[5,10,20],kb:0.6},
+    {id:'eh',g:'entra',card:'EXT',name:'Azure Event Hub: activity and directory events',ev:'MS_EvtHub_* via AZURE_PYTHON_SDK (AzureEventHubParser). If your Entra audit logs land here instead of on the MS-Entra parser, do not count this and the audit-log row twice.',feeds:'Global Administrator added to PIM user, consent grant attack, owner added to app or service principal, MFA disabled, Conditional Access policy modified, guest invited',re:4,drv:'tenant',rate:[2000,10000,50000],kb:2},
+    {id:'ms',g:'endp',card:'EXT',name:'Member servers: logon and lockout events',ev:'Security log 4624, 4625, 4740 on member servers (not DCs). Local accounts and RDP never reach the DCs. Filter noisy network and service logons.',feeds:'Brute force, account lockout and concurrent-login rules for servers',re:19,drv:'membersrv',rate:[300,1000,3000],kb:2.5},
+    {id:'dx',g:'endp',card:'EXT',off:true,name:'Defender XDR alerts and incidents',ev:'Requires Microsoft Defender XDR, with Defender for Identity for identity alerts (Microsoft security licences). Off by default. MSDefenderXDR-Alert-<tactic>-new and incident events via Graph API (or Event Hub). Defender for Identity alerts arrive here.',feeds:'32 rules: high and medium alerts for 16 MITRE tactics, plus high and medium incidents. None ITDR-tagged; they group by alert category and eventSource, not per MDI detection.',re:0,drv:'tenant',rate:[20,100,500],kb:4},
+    {id:'o3',g:'entra',card:'EXT',off:true,name:'Office 365 Management Activity API',ev:'MS_OFFICE365_* audit, all workloads. Off by default; largely overlaps Entra sign-ins for identity.',feeds:'Office365: User added to Admin Role, brute-force login rules. Logins also feed Sudden User Location Change via identityDef.xml.',re:11,drv:'user',rate:[50,150,400],kb:2},
+    {id:'lx',g:'endp',card:'EXT',off:true,name:'Linux: authentication syslog',ev:'sshd, sudo and PAM messages via syslog. Set the Linux server count under Advanced assumptions. Off by default.',feeds:'Brute force, lockout and concurrent-login rules for Linux hosts',re:14,drv:'linux',rate:[500,2000,5000],kb:0.5},
+    {id:'tCA',g:'endp',card:'TP',tp:true,name:'CyberArk Enterprise Password Vault',ev:'Vault syslog. Rough placeholder rate.',feeds:'Blocked operations, excessive impersonations, failed PSM connections and more',re:9,drv:'user',rate:[5,10,20],kb:1},
+    {id:'tAW',g:'endp',card:'TP',tp:true,name:'AWS CloudTrail',ev:'Management events only; data events would multiply this. Rough placeholder rate per account.',feeds:'Secrets Manager access, IAM assume-role brute force, MFA device deactivated, console logins',re:13,drv:'tenant',rate:[20000,100000,500000],kb:1.5},
+    {id:'tAH',g:'endp',card:'TP',tp:true,name:'AWS Security Hub findings',ev:'Findings via AWS_HUB_SDK. Rough placeholder rate.',feeds:'Credential Access and Privilege Escalation findings',re:2,drv:'tenant',rate:[100,500,2000],kb:3},
+    {id:'tOC',g:'endp',card:'TP',tp:true,name:'Oracle OCI audit',ev:'OCI_Streaming_SDK. Rough placeholder rate.',feeds:'User added to a group, user disabled MFA',re:2,drv:'tenant',rate:[5000,20000,100000],kb:1.5},
+    {id:'tVE',g:'endp',card:'TP',tp:true,name:'Veeam Backup and Replication',ev:'Veeam events. Rough placeholder rate.',feeds:'MFA brute force, MFA disabled for a user, backup database credential dump',re:3,drv:'tenant',rate:[200,1000,3000],kb:1},
+    {id:'tCS',g:'endp',card:'TP',tp:true,name:'CrowdStrike Falcon detections',ev:'Streaming API detections, not Falcon Data Replicator telemetry. Rough placeholder rate.',feeds:'Authentication bypass, credential theft, privilege escalation',re:3,drv:'tenant',rate:[100,500,2000],kb:3},
+    {id:'tDB',g:'endp',card:'TP',tp:true,name:'Database logons (SQL Server, Oracle, DB2)',ev:'Logon events via JDBC. Rough placeholder rate.',feeds:'Multiple logon failures: database, brute force followed by success',re:4,drv:'tenant',rate:[1000,5000,20000],kb:0.5},
+    {id:'tGW',g:'endp',card:'TP',tp:true,name:'Google Workspace admin and login',ev:'GOOGLE_APPS_ADMIN_SDK. Only if Workspace is an identity provider. Rough placeholder rate.',feeds:'2FA enforcement disabled, uncommon logins and other Workspace rules (not ITDR-tagged)',re:0,drv:'user',rate:[5,10,20],kb:2}
+  ]);
+
+  // The 57 new ITDR rules and the rows that satisfy each (any one is enough). c: entra | dir | adcs | host | linux
+  var PROC=['s0','s1','s4','w0','w1','w4'], PROCN=['s0','s1','w0','w1'];
+  var RULES=[].concat(
+    ['Conditional Access Disabled','Domain Authentication Changed','External User Added To Privileged Group','New Federation Domain Added','OAuth Secret Added','User Added To Application Admin','User Added To Exchange Admin','User Added To Global Admin','User Added To Privileged Role Admin','User Added To Security Admin'].map(function(n){return {n:n,c:'entra',req:['ea']}}),
+    [{n:'MFA Bypass Or Satisfied By Claim',c:'entra',req:['ei']}],
+    ['Account Created Then Added To Privileged Group','Mass Group Membership Changes','Mass User Creation By One Actor','Mass User Disable By One Actor','KRBTGT Password Reset'].map(function(n){return {n:n,c:'dir',req:['a4']}}),
+    [{n:'Kerberoasting Multiple SPNs',c:'dir',req:['a2']}],
+    ['AdminSDHolder Modified','RBCD Attribute Modified','Shadow Credentials KeyCredentialLink Modified','Schema Modification','Domain Trust Modified'].map(function(n){return {n:n,c:'dir',req:['a6']}}),
+    ['ESC1 template attribute','ESC2 Any Purpose EKU','ESC3 Enrollment Agent EKU','ESC4 template ACL','ESC5 PKI object ACL','ESC13 OID group link','ESC14 explicit mapping','Certificate Template Modified'].map(function(n){return {n:n,c:'adcs',req:['a6']}}),
+    [{n:'ESC7 CA Security Permissions Changed',c:'adcs',req:['ca']},{n:'CA Configuration Changed',c:'adcs',req:['ca']},{n:'AD CS Web Enrollment Certificate Request',c:'adcs',req:['iis']}],
+    ['Mimikatz Command','Rubeus Kerberos Abuse','BloodHound or SharpHound Execution','Secretsdump','SSP Registration','Authentication Package Modified','Nanodump','SafetyKatz','Pypykatz','LaZagne','Token Impersonation Tool','Certipy'].map(function(n){return {n:n,c:'host',req:PROC}}),
+    ['comsvcs.dll MiniDump LSASS','Procdump LSASS Dump','Sensitive Registry Hive Save'].map(function(n){return {n:n,c:'host',req:PROCN}}),
+    ['ESC6 certutil EDITF flag','ESC10 mapping change via command','ESC16 SID extension disabled'].map(function(n){return {n:n,c:'adcsHost',req:PROC}}),
+    [{n:'LSASS Access by Suspicious Process',c:'host',req:['s2','w2']},{n:'Suspicious LSASS Process Access',c:'host',req:['s2','w2']},{n:'PsExec Service Creation',c:'host',req:['sv','w5']}],
+    ['/etc/shadow Access','Root-Equivalent Account','PAM Configuration Modified'].map(function(n){return {n:n,c:'linux',req:[]}})
+  );
+  var PCN={psys:'Sysmon 1 only. Also needed by 89 re-tagged ITDR rules and most Sigma rules.',p4688:'Security 4688 only. Covers all 18 process rules with a GPO, no Sysmon. Sysmon 10 still needs Sysmon.',both:'Both. Each process start is logged twice, for no extra coverage in the 57 rules.'};
+
+  var FIND=[
+    'Every one of the 57 rules was read from the 7.6.0 rule definitions (crawled 5 October 2026). The mapping below is no longer inferred from rule names.',
+    'The 43 Windows rules split by source: 19 read the DC Security log, 18 read process creation (4688 or Sysmon 1; 15 also accept 4104), 2 read Sysmon 10, 2 read the CA audit log, 1 reads IIS and 1 reads System 7045.',
+    'AD CS: 8 of the 11 AD CS rules read 5136 on the domain controllers, not the CA. Only ESC7 (4882) and CA Configuration Changed (4890-4894) read the CA audit log. No 7.6.0 rule reads the request and issue events 4886 and 4887.',
+    'Security 4688 with command-line logging satisfies all 18 process rules without Sysmon. Sysmon is still needed for the two LSASS access rules, and for the whole ITDR category: 89 of the 244 re-tagged rules read Sysmon 1.',
+    'None of the 57 reads Sysmon 12-14, 4662, 4768, 4771, 5137 or 4672. No rule anywhere in 7.6.0 reads 4672 or the service principal, managed identity, provisioning or Graph activity logs. Non-interactive sign-in failures are read indirectly, through the Application Logon Failure group.',
+    'Logon group membership checked in a 7.6.0 system: Entra sign-in success and failure, including non-interactive failures, are in the Application Logon groups, so Entra brute force against one account is detected. 4771 is only in Domain Logon Failure, and the spraying rules read only Device Logon Failure, so neither Kerberos-only spraying nor Entra spraying is detected by a built-in rule. 4740 is in both lockout groups, so domain lockouts fire the enabled Account Locked: Server rule when the DC is in the CMDB Server group.',
+    'PsExec is detected from System 7045 (service install), not process creation, so it needs the System log on the target hosts.',
+    'All 57 are enabled by default. Severity: 7 at 10, 35 at 9, 9 at 8, and 6 at 7 (Kerberoasting, ESC2, Web Enrollment and the three mass-change rules). The 11 Entra rules are 8 to 10.',
+    'The 11 Entra rules match role adds by Add_member_to_role only. PIM role adds are caught by an existing re-tagged rule that reads MS_EvtHub_* events, a different parser path.',
+    'Defender for Identity: no rule names it, but 32 Defender XDR rules read Defender XDR alerts by MITRE tactic (high and medium for 16 tactics, plus incidents) whatever product raised them, so MDI alerts arrive through them. None is ITDR-tagged, and they work per alert category, not per MDI detection.',
+    'Sudden User Location Change (impossible travel, severity 9, re-tagged ITDR) reads no log event types. It fires on an identity-engine event whose inputs are the successful logons in /opt/phoenix/config/identityDef.xml, including Entra interactive sign-ins, Office 365 logins and VPN tunnel-up. Its documented data sources omit Entra.',
+    'Beyond the 57, the existing rules Fortinet re-tagged as ITDR lean on FortiGate authentication (18), member-server logon events (19), the Azure Event Hub feed (4, including PIM) and Office 365 (11).',
+    'Collection scope drives cost, not rule count. Events are not duplicated between DCs; the DC multiplier is padding.',
+    'Tool-name rules are evaded by renaming a binary; the behavioral LSASS rules matter more. FortiSIEM rules for EDR alerts do not replace the raw Windows events these rules read.'
+  ];
+  var VERIFY=[
+    'Make sure the SignInLogs diagnostic category is on. The MFA rule reads MS-Entra-SignInLogs-Logon-success.',
+    'PIM: check which parser your Event Hub feed lands on. MS-Entra-* types (MicrosoftAzureEntraParser) feed the 11 new rules; MS_EvtHub_* types (AzureEventHubParser) feed the PIM rule.',
+    '5136 rules need Directory Service Changes auditing plus SACLs on what they watch: AdminSDHolder, user and computer objects (RBCD, KeyCredentialLink), the Schema, trusts, and CN=Public Key Services for the 8 AD CS rules.',
+    'On the CA, enable auditing of security and configuration changes. Leave request and issue auditing off unless something else needs it.',
+    'If you use 4688, enable "Include command line in process creation events". Do not collect 4688 and Sysmon 1 together.',
+    'Account Created Then Added To Privileged Group relies on the 7.6.0 Windows parser SID mapping, so update Windows Collector content.',
+    'The Conditional Access rule matches any update or delete of a policy, so expect noise from routine edits.',
+    'Logon and lockout group memberships were checked in a 7.6.0 system. Re-check them after content updates, using Member Of on the event type.',
+    'Run a Sysmon pilot on 5 to 10 machines. It is the largest unknown and swings about 10 times with the Sysmon configuration.',
+    'Check that MDI alerts arrive as MSDefenderXDR-Alert-* events with the identity product in eventSource before relying on them for identity coverage.',
+    'FortiGate rows are shown for completeness and excluded from every total, because FortiGate logs are licensed separately.',
+    'Check identityDef.xml on your 7.6.0 system for the Entra sign-in entry before relying on Entra for impossible travel.',
+    'Set CA servers to 0 if there is no AD CS. Untick the IIS row if Web Enrollment is not installed.'
+  ];
+
+  var G={}, ACT={}, INC={T1:true,T2:true,T3:true,OPT:true,WS:false,EXT:true,TP:true};
+  function $(s){return document.querySelector(s)}
+  function num(el){var v=parseFloat(el.value);return (isFinite(v)&&v>=0)?v:0}
+  function n0(x){return Math.round(x).toLocaleString('en-US')}
+  function n1(x){return x.toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1})}
+  function gbf(x){return x<10?x.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):n1(x)}
+  function epsf(x){return x<10?x.toFixed(2):x.toFixed(1)}
+  function vol(mb){return mb>=1000?gbf(mb/1000)+' GB':n1(mb)+' MB'}
+  function set(id,t){var e=document.getElementById(id);if(e)e.textContent=t}
+  function scKey(){return document.querySelector('input[name=sc]:checked').value}
+  function scIdx(){return {low:0,med:1,high:2}[scKey()]}
+
+  function fieldHTML(k,label,val){
+    var sc=SCOPE[k];
+    return '<div class="field"'+(sc?' data-scope="'+sc+'"':'')+'><label for="g-'+k+'">'+label+'</label>'+
+      '<input class="in" id="g-'+k+'" type="number"'+PM+' min="0" step="any" inputmode="decimal" value="'+val+'"></div>';
+  }
+  function build(){
+    var s=SC.high;
+    $('#main-fields').innerHTML=MAIN.map(function(f){return fieldHTML(f[0],f[1],KEEP[f[0]])}).join('');
+    $('#adv-fields').innerHTML=ADV.map(function(f){var v=(f[0] in KEEP)?KEEP[f[0]]:s[f[0]];return fieldHTML(f[0],f[1],v)}).join('');
+
+    $('#tiers').innerHTML=CARDS.map(function(c){
+      return '<div class="tcard" id="tc-'+c.k+'" style="--c:var('+c.c+')">'+
+        '<div class="th"><div class="tn">'+c.tier+': '+c.title+'<small>'+c.rules+'</small></div>'+
+        '<label class="tcheck"><input type="checkbox" id="inc-'+c.k+'"'+PM+(INC[c.k]?' checked':'')+'><span>Include</span></label></div>'+
+        '<div class="tnums"><div><b id="tv-'+c.k+'">0</b><span id="tu-'+c.k+'"></span></div><div><b id="te-'+c.k+'">0</b><span>events/day</span></div></div>'+
+        '<div class="tbar"><i id="tb-'+c.k+'"></i></div>'+
+        '<p class="tp">'+c.why+'</p><p class="tsrc"><b>Needs:</b> '+c.src+'</p></div>';
+    }).join('');
+
+    $('#tp-list').innerHTML=ROWS.filter(function(r){return r.tp}).map(function(r){
+      return '<label class="chk" style="margin:0 0 4px"><input type="checkbox" id="tp-'+r.id+'"'+PM+'><span>'+r.name+'</span></label>';
+    }).join('');
+    $('#rows').innerHTML=ROWS.map(function(r){
+      var rate=r.rate===null?'<span id="r-'+r.id+'"></span>':'<input class="in" id="r-'+r.id+'" type="number"'+PM+' min="0" step="any" inputmode="decimal" value="'+r.rate[2]+'" aria-label="Rate for '+r.name+'">';
+      return '<tr id="tr-'+r.id+'" style="--c:var('+cardColor(r.card)+')">'+
+        '<td class="cc"><input type="checkbox" id="c-'+r.id+'"'+PM+(r.off||r.tp?'':' checked')+(r.tp?' disabled title="Switch on in the side panel"':'')+' aria-label="Include '+r.name+'"></td>'+
+        '<td><div class="nm">'+r.name+'</div><div class="evn">'+r.ev+'</div></td>'+
+        '<td><span class="tag">'+TAGS[r.card]+'</span></td>'+
+        '<td class="feeds">'+r.feeds+(r.re?'<br><i>Also read by '+r.re+' re-tagged ITDR rule'+(r.re>1?'s':'')+'</i>':'')+'</td>'+
+        '<td class="num ed">'+rate+'</td><td class="ed" id="per-'+r.id+'" style="font-size:12.5px;color:var(--muted);white-space:nowrap"></td>'+
+        '<td class="num ed"><input class="in" id="k-'+r.id+'" type="number"'+PM+' min="0" step="any" inputmode="decimal" value="'+r.kb+'" aria-label="Event size in KB for '+r.name+'"></td>'+
+        '<td class="num" id="ev-'+r.id+'"></td><td class="num" id="mb-'+r.id+'"></td>'+
+        (r.free?'<td><span class="pc" style="text-align:left">Not counted: licensed separately</span></td></tr>':'<td><span class="sbar"><i id="sb-'+r.id+'"></i></span><span class="pc" id="pc-'+r.id+'"></span></td></tr>');
+    }).join('');
+
+    $('#find').innerHTML=FIND.map(function(t){return '<li>'+t+'</li>'}).join('');
+    $('#verify').innerHTML=VERIFY.map(function(t){return '<li>'+t+'</li>'}).join('');
+    Array.prototype.forEach.call(document.querySelectorAll('input.in'),function(i){i.readOnly=true});
+  }
+  function cardColor(k){for(var i=0;i<CARDS.length;i++)if(CARDS[i].k===k)return CARDS[i].c;return '--opt'}
+
+  function applyScenario(){
+    var s=SC[scKey()], i=scIdx();
+    ['cpu','srvShare','riskyPct','burst','bizShare'].forEach(function(k){$('#g-'+k).value=s[k]});
+    ROWS.forEach(function(r){if(r.rate!==null)$('#r-'+r.id).value=r.rate[i]});
+  }
+  function readG(){
+    MAIN.concat(ADV).forEach(function(f){G[f[0]]=num($('#g-'+f[0]))});
+    G.dcMult=$('#g-dcMult').checked;
+  }
+  function driver(r){
+    if(r.drv==='user')return G.users;
+    if(r.drv==='computer')return G.users*G.cpu;
+    if(r.drv==='risky')return G.users*G.riskyPct/100;
+    if(r.drv==='ca')return G.cas>0?G.users:0;
+    if(r.drv==='caserver')return G.cas;
+    if(r.drv==='membersrv')return G.users*G.cpu*G.srvShare/100;
+    if(r.drv==='linux')return G.linuxSrv;
+    if(r.drv==='server')return G.users*G.cpu*G.srvShare/100+(ACT.dir?G.dcs+G.cas:0);
+    if(r.drv==='ws')return G.users*G.cpu*(1-G.srvShare/100);
+    return 1;
+  }
+  function perLabel(r){
+    var b={user:'user',computer:'computer',tenant:'tenant',risky:'risky user',server:'server',ws:'workstation',ca:'user',caserver:'CA server',membersrv:'member server',linux:'Linux server'}[r.drv];
+    return b+(r.dc&&G.dcMult?' / DC':'')+' / day';
+  }
+
+  function update(){
+    readG();
+    var mode=document.querySelector('input[name=mode]:checked').value;
+    ACT={entra:mode!=='onprem',poll:mode!=='onprem',dir:mode!=='cloud',endp:true};
+    var pc=document.querySelector('input[name=pc]:checked').value;
+    ACT.psys=pc!=='p4688'; ACT.p4688=pc!=='psys';
+    set('sc-note',SC[scKey()].note); set('mode-note',MODES[mode]); set('pc-note',PCN[pc]);
+    Array.prototype.forEach.call(document.querySelectorAll('.field[data-scope]'),function(f){
+      var ok=f.getAttribute('data-scope')==='dir'?ACT.dir:ACT.entra;
+      f.querySelector('input').disabled=!ok; f.style.opacity=ok?'':'.45';
+    });
+    $('#g-dcMult').disabled=!ACT.dir;
+    CARDS.forEach(function(c){INC[c.k]=$('#inc-'+c.k).checked});
+
+    var calc=[], tev=0, tmb=0, fev=0, fmb=0, pot={};
+    CARDS.forEach(function(c){pot[c.k]={ev:0,mb:0,inc:0,incmb:0}});
+    ROWS.forEach(function(r){
+      var tpOn=!r.tp||$('#tp-'+r.id).checked;
+      if(r.tp)$('#c-'+r.id).checked=tpOn;
+      var avail=ACT[r.g]&&(!r.pc||ACT[r.pc])&&tpOn;
+      var rowOn=$('#c-'+r.id).checked && avail;
+      var rate=r.rate===null?(G.pollMin>0?1440/G.pollMin:0):num($('#r-'+r.id));
+      var kb=num($('#k-'+r.id));
+      var ev=rowOn?rate*driver(r)*((r.dc&&G.dcMult)?G.dcs:1):0;
+      var mb=ev*kb/1000;
+      var on=rowOn&&INC[r.card];
+      if(r.free){if(on){fev+=ev;fmb+=mb}}
+      else{pot[r.card].ev+=ev; pot[r.card].mb+=mb; if(on){tev+=ev;tmb+=mb}}
+      calc.push({r:r,ev:ev,mb:mb,on:on,rowOn:rowOn});
+      if(r.rate===null)set('r-'+r.id,n0(rate));
+      set('per-'+r.id,r.rate===null?'polls / day':perLabel(r));
+      $('#c-'+r.id).disabled=r.tp?true:!avail;
+    });
+
+    calc.forEach(function(c){
+      var id=c.r.id, p=tmb>0&&c.on&&!c.r.free?c.mb/tmb*100:0;
+      set('ev-'+id,n0(c.ev)); set('mb-'+id,vol(c.mb)); if(!c.r.free)set('pc-'+id,c.on?p.toFixed(0)+'%':'');
+      var sb=document.getElementById('sb-'+id); if(sb)sb.style.width=Math.min(100,p)+'%';
+      document.getElementById('tr-'+id).classList.toggle('off',!c.on);
+    });
+
+    var maxMB=0; CARDS.forEach(function(c){if(pot[c.k].mb>maxMB)maxMB=pot[c.k].mb});
+    CARDS.forEach(function(c){
+      var p=pot[c.k], el=$('#tc-'+c.k);
+      el.classList.toggle('off',!INC[c.k]);
+      set('tv-'+c.k,p.mb>=1000?gbf(p.mb/1000):n1(p.mb));
+      set('tu-'+c.k,p.mb>=1000?'GB/day':'MB/day');
+      set('te-'+c.k,n0(p.ev));
+      $('#tb-'+c.k).style.width=(maxMB>0?p.mb/maxMB*100:0)+'%';
+    });
+
+    var rawGB=tmb/1000, avg=tev/86400;
+    var biz=G.bizHours>0?tev*(G.bizShare/100)/(G.bizHours*3600):0, peak=biz*G.burst;
+    var stored=rawGB*G.ratio/100;
+    set('k-gb',gbf(rawGB)); set('k-mb',n1(tmb)+' MB/day'+(fmb>0?'; FortiGate '+vol(fmb)+'/day not counted':''));
+    set('k-ev',n0(tev)); set('k-avg',epsf(avg)+' EPS average over 24 hours');
+    set('k-peak',epsf(peak)); set('k-biz',epsf(biz)+' EPS in business hours, burst '+G.burst+' times');
+    set('k-ret',gbf(stored*G.retention)); set('k-retl','over '+n0(G.retention)+' days at '+n0(G.ratio)+'% of raw ('+gbf(rawGB*G.retention)+' GB raw)');
+
+    var live={}; calc.forEach(function(c){if(c.on&&c.ev>0)live[c.r.id]=true});
+    var hasCA=ACT.dir&&G.cas>0, rules=0;
+    RULES.forEach(function(x){
+      if(x.c==='linux')return;
+      if(x.c==='entra'&&!ACT.entra)return;
+      if(x.c==='dir'&&!ACT.dir)return;
+      if((x.c==='adcs'||x.c==='adcsHost')&&!hasCA)return;
+      for(var i=0;i<x.req.length;i++){if(live[x.req[i]]){rules++;return}}
+    });
+    set('k-rules',String(rules)); set('k-rulesl','(computed from each rule\'s confirmed sources; the 3 Linux rules are not sized)');
+
+    var top=calc.filter(function(c){return c.on&&c.mb>0&&!c.r.free}).sort(function(a,b){return b.mb-a.mb}).slice(0,8);
+    var mx=top.length?top[0].mb:1;
+    $('#top').innerHTML=top.length?top.map(function(c){
+      return '<div class="trow" style="--c:var('+cardColor(c.r.card)+')"><div>'+c.r.name+'</div><div class="tb"><i style="width:'+(c.mb/mx*100)+'%"></i></div><div class="tv">'+vol(c.mb)+'</div></div>';
+    }).join(''):'<div class="note">Nothing selected.</div>';
+  }
+
+  function reset(){
+    document.querySelector('input[name=sc][value=high]').checked=true;
+    document.querySelector('input[name=mode][value=hybrid]').checked=true;
+    document.querySelector('input[name=pc][value=psys]').checked=true;
+    Object.keys(KEEP).forEach(function(k){$('#g-'+k).value=KEEP[k]});
+    $('#g-dcMult').checked=true;
+    CARDS.forEach(function(c){$('#inc-'+c.k).checked=(c.k!=='WS')});
+    ROWS.forEach(function(r){$('#c-'+r.id).checked=!(r.off||r.tp);$('#k-'+r.id).value=r.kb;if(r.tp)$('#tp-'+r.id).checked=false});
+    applyScenario(); update();
+  }
+
+  build(); applyScenario(); update();
+  document.addEventListener('input',update);
+  document.addEventListener('change',function(e){
+    if(e.target&&e.target.name==='sc')applyScenario();
+    update();
+  });
+  document.addEventListener('focusin',function(e){
+    var t=e.target;
+    if(t.classList&&t.classList.contains('in')){t.readOnly=false;if(t.select)t.select()}
+  });
+  $('#show-ed').addEventListener('change',function(e){$('#tbl').classList.toggle('show-ed',e.target.checked)});
+  $('#reset').addEventListener('click',reset);
+  window.addEventListener('pageshow',function(){update()});
+  window.addEventListener('load',function(){update()});
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Identity use-case sizing for FortiSIEM 7.6.0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light dark;
+  --bg:#EEF1F4; --surface:#FFFFFF; --ink:#16212B; --muted:#58646F;
+  --rule:#D3DAE1; --rule2:#A9B4BF;
+  --in-bg:#FFF6CC; --in-ink:#0A4DB5; --in-rule:#E0D184;
+  --on:#1B7F5F; --on-soft:#E3F2EC; --need:#B9770E; --need-soft:#FBF0DD; --off:#7B8794;
+  --bar:#2F6FDE; --focus:#0A4DB5;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#10161C; --surface:#18212A; --ink:#E6ECF1; --muted:#9AA7B3;
+    --rule:#2A3541; --rule2:#44525F;
+    --in-bg:#3A3410; --in-ink:#8DB8FF; --in-rule:#6B5F1F;
+    --on:#4FC79D; --on-soft:#173229; --need:#E0A84A; --need-soft:#3A2D14; --off:#9AA7B3;
+    --bar:#6C9CFF; --focus:#8DB8FF;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#10161C; --surface:#18212A; --ink:#E6ECF1; --muted:#9AA7B3;
+  --rule:#2A3541; --rule2:#44525F;
+  --in-bg:#3A3410; --in-ink:#8DB8FF; --in-rule:#6B5F1F;
+  --on:#4FC79D; --on-soft:#173229; --need:#E0A84A; --need-soft:#3A2D14; --off:#9AA7B3;
+  --bar:#6C9CFF; --focus:#8DB8FF;
+}
+*{box-sizing:border-box}
+html{height:100%;background:var(--bg);scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);
+  font:15px/1.5 "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  font-variant-numeric:tabular-nums}
+.shell{max-width:1180px;margin:0 auto;padding:28px 20px 60px}
+h1{font-size:15px;font-weight:600;margin:0 0 18px;color:var(--muted)}
+h2{font-size:18px;font-weight:600;margin:0 0 4px}
+.lede{color:var(--muted);margin:0 0 14px;max-width:72ch;font-size:14px}
+
+/* the sentence is the calculator */
+.sentence{font-size:clamp(16px,1.6vw,20px);line-height:1.7;font-weight:400;max-width:48em;margin:0 0 18px}
+.sentence .in,.sentence select{font:inherit;font-weight:600;color:var(--in-ink);background:var(--in-bg);border:1px solid var(--in-rule);border-radius:5px;padding:0 6px;margin:0 2px}
+.sentence input.in{width:5.6em;text-align:right}
+.sentence select{padding-right:4px;cursor:pointer;max-width:100%}
+.sentence .nw{white-space:nowrap}
+.sentence .nw select{max-width:calc(100% - 1ch)}
+.sentence b.res{font-weight:600;border-bottom:3px solid var(--bar);white-space:nowrap}
+.stats{display:flex;flex-wrap:wrap;gap:8px 28px;font-size:14px;color:var(--muted);margin:0 0 30px;padding-bottom:20px;border-bottom:2px solid var(--ink)}
+.stats b{display:block;font-size:18px;color:var(--ink);font-weight:600}
+
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:30px;align-items:start}
+@media (max-width:980px){.layout{grid-template-columns:minmax(0,1fr)}}
+
+/* use cases */
+.uc{display:grid;grid-template-columns:28px minmax(0,1fr) 180px;gap:6px 14px;padding:14px 14px 12px;background:var(--surface);border:1px solid var(--rule);border-left:5px solid var(--off);border-radius:6px;margin-bottom:10px}
+.uc.sel{border-left-color:var(--on)}
+.uc.na{opacity:.55}
+.uc input[type=checkbox]{width:18px;height:18px;margin:3px 0 0;cursor:pointer;accent-color:var(--on)}
+.uc .t{font-weight:600;font-size:16px;line-height:1.3;cursor:pointer}
+.uc .d{font-size:13.5px;color:var(--muted);margin:3px 0 7px;max-width:62ch}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{font-size:12px;padding:1px 7px;border-radius:3px;border:1px solid var(--rule2);color:var(--muted);white-space:nowrap}
+.chip.free{border-style:dashed}
+.chip.gone{text-decoration:line-through;opacity:.6}
+.cost{text-align:right;font-size:13px;color:var(--muted)}
+.cost b{display:block;font-size:18px;color:var(--ink);font-weight:600}
+.cost span[id^="cl-"]{display:block;line-height:1.35}
+.cost .cb{height:6px;background:var(--rule);border-radius:3px;overflow:hidden;margin:6px 0 4px}
+.cost .cb i{display:block;height:100%;background:var(--bar)}
+.cov{font-size:12.5px;color:var(--muted)}
+.uc details{grid-column:2 / -1;margin-top:2px}
+.uc summary{cursor:pointer;font-size:13px;color:var(--muted)}
+.rl{list-style:none;margin:8px 0 0;padding:0;font-size:13px;columns:2 300px;column-gap:24px}
+.rl li{break-inside:avoid;padding:3px 0 3px 18px;position:relative;line-height:1.35}
+.rl li::before{content:"";position:absolute;left:2px;top:8px;width:8px;height:8px;border-radius:50%;background:var(--on)}
+.rl li.no::before{background:transparent;border:1.5px solid var(--need)}
+.rl .m{color:var(--muted);font-size:12px}
+.rl .need{color:var(--need);font-size:12px}
+.flag{display:inline-block;margin-top:6px;font-size:12.5px;padding:2px 8px;border-radius:3px;background:var(--need-soft);color:var(--ink)}
+.flag[hidden]{display:none}
+.req{font-size:12.5px;margin-top:6px;line-height:1.4}
+.req b{font-weight:600}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+@media (max-width:620px){.uc{grid-template-columns:24px minmax(0,1fr)}.cost{grid-column:2;text-align:left}.cost .cb{max-width:220px}}
+
+/* side */
+.side{position:sticky;top:calc(14px + env(safe-area-inset-top,0px));display:grid;gap:14px}
+@media (max-width:980px){.side{position:static}}
+.box{background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:14px}
+.box h3{font-size:14px;margin:0 0 8px}
+.seg{display:flex;border:1px solid var(--rule2);border-radius:6px;overflow:hidden;margin-bottom:6px}
+.seg label{position:relative;flex:1;cursor:pointer;text-align:center}
+.seg input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
+.seg span{display:block;padding:6px 4px;font-size:13.5px;background:var(--surface);border-right:1px solid var(--rule2)}
+.seg label:last-child span{border-right:0}
+.seg input:checked + span{background:var(--ink);color:var(--surface);font-weight:600}
+.seg input:focus-visible + span{outline:2px solid var(--focus);outline-offset:-2px}
+.chk{display:flex;gap:8px;align-items:flex-start;font-size:13.5px;margin:6px 0;cursor:pointer;line-height:1.35}
+.chk input{margin-top:2px}
+.note{font-size:12.5px;color:var(--muted);margin:4px 0 0;line-height:1.4}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.fields label{display:block;font-size:12px;color:var(--muted);line-height:1.25;margin-bottom:3px;min-height:30px}
+.fields .in{width:100%;font:inherit;font-size:14px;text-align:right;color:var(--in-ink);background:var(--in-bg);border:1px solid var(--in-rule);border-radius:4px;padding:4px 7px}
+details.adv summary{cursor:pointer;font-size:14px;font-weight:600}
+details.adv .fields{margin-top:10px}
+button{font:inherit;font-size:13.5px;color:var(--ink);background:var(--surface);border:1px solid var(--rule2);border-radius:4px;padding:6px 12px;cursor:pointer}
+.in:focus-visible,select:focus-visible,input[type=checkbox]:focus-visible,button:focus-visible,summary:focus-visible,textarea:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+
+.sec{margin-top:34px}
+.tablewrap{overflow-x:auto;background:var(--surface);border-top:2px solid var(--ink)}
+table{width:100%;border-collapse:collapse;min-width:720px;font-size:13.5px}
+th{font-size:12px;font-weight:500;color:var(--muted);text-align:left;padding:8px 10px;border-bottom:1px solid var(--rule2);white-space:nowrap}
+td{padding:7px 10px;border-bottom:1px solid var(--rule);vertical-align:top}
+th.r,td.r{text-align:right;white-space:nowrap}
+td .s{font-size:12px;color:var(--muted)}
+tr.free td{color:var(--muted)}
+textarea{width:100%;min-height:210px;font:13px/1.45 "IBM Plex Sans",system-ui,sans-serif;color:var(--ink);background:var(--surface);border:1px solid var(--rule2);border-radius:6px;padding:10px;resize:vertical}
+.foot{color:var(--muted);font-size:13px;max-width:86ch}
+.foot li{margin-bottom:6px}
+.covline{font-size:14px;margin:0 0 12px}
+</style>
+</head>
+<body>
+<div class="shell">
+  <h1>Identity use-case sizing for FortiSIEM 7.6.0</h1>
+
+  <p class="sentence" aria-live="polite">
+    For <input class="in" id="users" type="number" min="1" step="1" value="200" inputmode="numeric" aria-label="Number of users" autocomplete="off"> users
+    in <select id="env" aria-label="Environment"><option value="hybrid">a hybrid</option><option value="cloud">an Entra-only</option><option value="onprem">an AD-only</option></select> environment,
+    the selected use cases need about <b class="res" id="gb">0 GB</b> of logs per day.
+  </p>
+  <div class="stats" aria-live="polite">
+    <div><b id="st-eps">0</b>peak EPS</div>
+    <div><b id="st-ev">0</b>events per day</div>
+    <div><b id="st-store">0</b><span id="st-storel">stored</span></div>
+    <div><b id="st-pu">0</b>MB per user per day</div>
+    <div><b id="st-57">0</b>of the 57 new ITDR rules covered (15 apply only with AD CS)</div>
+  </div>
+
+  <div class="layout">
+    <main>
+      <h2>Use cases</h2>
+      <p class="lede">Tick what the customer wants to detect. Shared log sources are counted once and their volume is split evenly between the ticked use cases that need them, so the use-case figures add up to the total.</p>
+      <div id="ucs"></div>
+
+      <section class="sec">
+        <h2>Log sources behind the estimate</h2>
+        <p class="lede">Only sources needed by a ticked use case. Rates and event sizes are estimates for the chosen scenario.</p>
+        <div class="tablewrap"><table>
+          <thead><tr><th>Log source</th><th>Needed by</th><th class="r">Rate</th><th class="r">Events/day</th><th class="r">Volume/day</th><th class="r">Share</th></tr></thead>
+          <tbody id="src"></tbody>
+        </table></div>
+      </section>
+
+      <section class="sec">
+        <h2>Summary to paste into a proposal</h2>
+        <textarea id="sum" readonly aria-label="Summary text"></textarea>
+      </section>
+
+      <section class="sec foot">
+        <h2 style="color:var(--ink)">How this is built</h2>
+        <ul>
+          <li>Every rule listed under a use case was read from the FortiSIEM 7.6.0 rule definitions (crawled 5 October 2026), including which event types it reads. A rule counts as covered when at least one source it accepts is collected.</li>
+          <li>Rates per user, per server and per tenant are estimates, not measurements. Low, Medium and High change rates, computers per user, server share and the burst factor. Measure the largest sources before quoting: process creation on servers and member-server logons.</li>
+          <li>Sizes are uncompressed bytes as received. Stored size depends on how FortiSIEM writes events, so replace the stored percentage with your sizing tool's per-event figure.</li>
+          <li>FortiGate authentication is listed under password spraying but never added to volume, because FortiGate logs are licensed separately.</li>
+          <li>The brute-force and spraying rules use FortiSIEM logon event-type groups. Their Windows members were checked in a 7.6.0 system (Device and Domain Logon Failure and Success); the Windows groups contain no Entra or Office 365 event types, while Entra sign-in success and failure belong to the Application Logon groups.</li>
+          <li>Sudden User Location Change has no log event types in its rule. It fires on an event from FortiSIEM's identity engine, whose inputs are the successful-logon events listed in /opt/phoenix/config/identityDef.xml, including Entra interactive sign-ins, Office 365 logins and VPN tunnel-up. The two Windows login-profile rules also fire on internal events; their inputs are assumed to be Windows logon events, which the public documentation does not confirm.</li>
+          <li>Use cases that depend on a product beyond FortiSIEM and native Windows, Entra and Microsoft 365 logs say so under Requires. Entra sign-in log export needs Entra ID P1, which is included in Microsoft 365 E3 and Business Premium.</li>
+          <li>The 3 new Linux ITDR rules are not part of these use cases.</li>
+        </ul>
+      </section>
+    </main>
+
+    <aside class="side" aria-label="Settings">
+      <div class="box">
+        <h3>Scenario</h3>
+        <div class="seg" role="radiogroup" aria-label="Scenario">
+          <label><input type="radio" name="sc" value="0" autocomplete="off"><span>Low</span></label>
+          <label><input type="radio" name="sc" value="1" autocomplete="off" checked><span>Medium</span></label>
+          <label><input type="radio" name="sc" value="2" autocomplete="off"><span>High</span></label>
+        </div>
+        <p class="note" id="sc-note"></p>
+      </div>
+      <div class="box">
+        <h3>Process data from</h3>
+        <div class="seg" role="radiogroup" aria-label="Process creation source">
+          <label><input type="radio" name="pc" value="sysmon" autocomplete="off" checked><span>Sysmon</span></label>
+          <label><input type="radio" name="pc" value="4688" autocomplete="off"><span>Security 4688</span></label>
+        </div>
+        <p class="note" id="pc-note"></p>
+      </div>
+      <div class="box">
+        <h3>Host coverage</h3>
+        <label class="chk"><input type="checkbox" id="ws"><span>Collect host telemetry on workstations too</span></label>
+        <label class="chk"><input type="checkbox" id="ps"><span>Add PowerShell script blocks (4104)</span></label>
+        <p class="note">Workstations multiply host volume many times over. PowerShell adds detection of tools run inside PowerShell; it covers no extra rules.</p>
+      </div>
+      <div class="box">
+        <h3>Cloud coverage</h3>
+        <label class="chk"><input type="checkbox" id="en"><span>Add Entra non-interactive sign-ins</span></label>
+        <p class="note">Their failures feed the same application brute-force rules as interactive sign-ins, catching automated and token-based attempts. High volume; covers no extra rules.</p>
+      </div>
+      <div class="box">
+        <details class="adv">
+          <summary>Advanced assumptions</summary>
+          <div class="fields" id="adv"></div>
+          <label class="chk"><input type="checkbox" id="dcmult"><span>Multiply DC rates by the number of DCs (padding for a ceiling)</span></label>
+        </details>
+      </div>
+      <div class="box"><button type="button" id="reset">Reset to defaults</button></div>
+    </aside>
+  </div>
+</div>
+
+<script>
+window.addEventListener("error",function(e){var d=document.createElement("div");d.setAttribute("role","alert");d.style.cssText="margin:12px;padding:10px 12px;border:1px solid #C0392B;border-radius:4px;color:#C0392B;font-size:14px";d.textContent="Script error: "+(e.message||"unknown");document.body.insertBefore(d,document.body.firstChild)});
+(function(){
+  function $(s){return document.querySelector(s)}
+  function num(el){var v=parseFloat(el.value);return (isFinite(v)&&v>=0)?v:0}
+  function n0(x){return Math.round(x).toLocaleString('en-US')}
+  function n1(x){return x.toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1})}
+  function gbf(x){return x<10?x.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):n1(x)}
+  function vol(mb){return mb>=1000?gbf(mb/1000)+' GB':(mb<10?mb.toFixed(2):n1(mb))+' MB'}
+  function set(id,t){var e=document.getElementById(id);if(e)e.textContent=t}
+
+  var SC=[
+    {name:'Low',note:'Lean, tuned collection in a quiet tenant. A floor, not a quote.',cpu:1.1,srvShare:10,burst:3,bizShare:70},
+    {name:'Medium',note:'A typical tenant with collection tuned to these rules. The default for estimates.',cpu:1.3,srvShare:15,burst:4,bizShare:75},
+    {name:'High',note:'Worst case: noisy hosts and generous rates. Use as a ceiling.',cpu:1.5,srvShare:20,burst:5,bizShare:80}
+  ];
+  var DEF={dcs:2,cas:2,srvOverride:0,retention:90,ratio:10,bizHours:10};
+  var ADV=[['dcs','Domain controllers'],['cas','CA servers'],['srvOverride','Servers (0 = derive from users)'],['cpu','Computers per user'],['srvShare','Servers among computers (%)'],['retention','Retention (days)'],['ratio','Stored size vs raw (%)'],['bizShare','Events in business hours (%)'],['bizHours','Business hours per day'],['burst','Peak burst factor (times)']];
+
+  // g: entra | dir | adcs | web | host | any. drv: user | tenant | server | member | ws | ca. rate: [low, medium, high] per driver per day.
+  var SRC={
+    ea:{name:'Entra audit logs',g:'entra',drv:'user',rate:[3,6,10],kb:3},
+    ei:{name:'Entra interactive sign-ins',g:'entra',drv:'user',rate:[5,10,15],kb:4},
+    eh:{name:'Azure Event Hub directory activity (MS_EvtHub)',g:'entra',drv:'tenant',rate:[2000,10000,50000],kb:2},
+    en:{name:'Entra non-interactive sign-ins',g:'entra',drv:'user',rate:[40,80,150],kb:4,opt:'en'},
+    o3:{name:'Office 365 Management Activity API',g:'entra',drv:'user',rate:[50,150,400],kb:2},
+    a4:{name:'DC: account and group management',g:'dir',drv:'user',dc:1,rate:[3,5,8],kb:2.5},
+    a6:{name:'DC: directory object changes (5136, trusts)',g:'dir',drv:'user',dc:1,rate:[1,2,3],kb:2.5},
+    a2:{name:'DC: Kerberos (4768, 4769, 4771)',g:'dir',drv:'user',dc:1,rate:[15,28,40],kb:2.5},
+    a5:{name:'DC: directory service access (4662)',g:'dir',drv:'user',dc:1,rate:[1,3,5],kb:2.5},
+    a1:{name:'DC: logon, logoff and lockout',g:'dir',drv:'user',dc:1,rate:[10,18,25],kb:2.5},
+    a8:{name:'DC: NTLM credential validation (4776)',g:'dir',drv:'user',dc:1,rate:[5,10,20],kb:2.5},
+    ms:{name:'Member servers: logon and lockout',g:'host',drv:'member',rate:[300,1000,3000],kb:2.5},
+    ca:{name:'CA servers: audit (4882, 4890-4894)',g:'adcs',drv:'ca',rate:[5,10,20],kb:1.5},
+    iis:{name:'Web Enrollment server: IIS logs',g:'web',drv:'ca',rate:[50,200,500],kb:0.5},
+    pc:{name:'Servers: process creation',g:'host',drv:'server',rate:[1000,2000,3000],kb:2},
+    s2:{name:'Servers: Sysmon 10 (LSASS access)',g:'host',drv:'server',rate:[100,200,300],kb:1.5},
+    sv:{name:'Servers: service installs (System 7045)',g:'host',drv:'server',rate:[1,3,5],kb:1.5},
+    s4:{name:'Servers: PowerShell 4104',g:'host',drv:'server',rate:[100,300,500],kb:3,opt:'ps'},
+    wpc:{name:'Workstations: process creation',g:'host',drv:'ws',rate:[1500,3000,5000],kb:2,opt:'ws',base:'pc'},
+    ws2:{name:'Workstations: Sysmon 10 (LSASS access)',g:'host',drv:'ws',rate:[30,60,100],kb:1.5,opt:'ws',base:'s2'},
+    wsv:{name:'Workstations: service installs (System 7045)',g:'host',drv:'ws',rate:[0.5,1,2],kb:1.5,opt:'ws',base:'sv'},
+    ws4:{name:'Workstations: PowerShell 4104',g:'host',drv:'ws',rate:[100,200,300],kb:3,opt:'wsps',base:'s4'},
+    fg:{name:'FortiGate: VPN and admin authentication',g:'any',drv:'user',rate:[5,10,20],kb:0.6,free:1},
+    dc:{name:'FortiDeceptor alerts',g:'any',drv:'tenant',rate:[50,200,1000],kb:1.5},
+    dx:{name:'Defender XDR alerts and incidents',g:'any',drv:'tenant',rate:[20,100,500],kb:4}
+  };
+  var PROC=['pc','s4','wpc','ws4'], PROCN=['pc','wpc'], LSASS=['s2','ws2'], SVC=['sv','wsv'];
+  // tag: n = new 7.6.0 ITDR, r = existing rule re-tagged ITDR, o = other existing rule. dis = disabled by default. w = rule count for grouped entries
+  function R(n,src,tag,extra){var o={n:n,src:src,tag:tag};if(extra)for(var k in extra)o[k]=extra[k];return o}
+  var UC=[
+    {id:'priv',t:'Privileged role and group changes',d:'Someone gains admin rights: Entra admin roles, privileged AD groups, PIM assignments, new owners on apps and service principals, and bulk account changes.',src:['ea','a4','eh'],on:1,rules:[
+      R('Azure Entra ID: User Added To Global Admin',['ea'],'n'),R('Azure Entra ID: User Added To Privileged Role Admin',['ea'],'n'),R('Azure Entra ID: User Added To Security Admin',['ea'],'n'),
+      R('Azure Entra ID: User Added To Exchange Admin',['ea'],'n'),R('Azure Entra ID: User Added To Application Admin',['ea'],'n'),R('Azure Entra ID: External User Added To Privileged Group',['ea'],'n'),
+      R('Windows: Account Created Then Added To Privileged Group',['a4'],'n'),R('Windows: Mass Group Membership Changes',['a4'],'n'),R('Windows: Mass User Creation By One Actor',['a4'],'n'),R('Windows: Mass User Disable By One Actor',['a4'],'n'),
+      R('Azure Global Administrator Role Added to PIM User',['eh'],'r'),R('User Added as Owner for Azure Application',['eh'],'r'),R('User Added as Owner for Azure Service Principal',['eh'],'r')]},
+    {id:'tamper',t:'Identity infrastructure tampering',d:'Changes that give an attacker lasting control: federation and domain authentication, app secrets and consent, AdminSDHolder, Shadow Credentials, RBCD, schema, trusts and KRBTGT.',src:['ea','a6','a4','eh'],on:1,rules:[
+      R('Azure Entra ID: New Federation Domain Added',['ea'],'n'),R('Azure Entra ID: Domain Authentication Changed',['ea'],'n'),R('Azure Entra ID: OAuth Secret Added',['ea'],'n'),
+      R('Possible Consent Grant Attack via Azure-Registered Application',['eh'],'r'),
+      R('Windows: AdminSDHolder Modified',['a6'],'n'),R('Windows: Shadow Credentials KeyCredentialLink Modified',['a6'],'n'),R('Windows: RBCD Attribute Modified',['a6'],'n'),
+      R('Windows: Schema Modification',['a6'],'n'),R('Windows: Domain Trust Modified',['a6'],'n'),R('Windows: KRBTGT Password Reset',['a4'],'n')]},
+    {id:'mfa',t:'MFA and Conditional Access weakening',d:'Sign-ins where MFA was bypassed or satisfied by a claim, Conditional Access policies changed or deleted, and MFA turned off for a user.',src:['ei','ea','eh'],on:1,rules:[
+      R('Azure Entra ID: MFA Bypass Or Satisfied By Claim',['ei'],'n'),R('Azure Entra ID: Conditional Access Disabled',['ea'],'n',{m:'fires on any policy update or delete'}),
+      R('Azure Conditional Access Policy Modified',['eh'],'o'),R('Multi-Factor Authentication Disabled for an Azure User',['eh'],'o')]},
+    {id:'travel',req:'VPN logs from FortiGate or another VPN gateway, if used (licensed separately, not counted).',t:'Suspicious logins and stolen credentials',d:'Logins from two places too far apart for the time between them, and Windows users whose daily login pattern or volume suddenly departs from their normal profile.',src:['ei','fg','a1'],on:1,
+      flag:'These rules fire on events from FortiSIEM\'s identity and profiling engines, not on log events in the rule. Impossible travel needs public source IPs (cloud sign-ins, VPN). The two Windows rules learn a per-user profile first, so expect a learning period.',rules:[
+      R('Sudden User Location Change',['ei','o3','fg'],'r',{m:'inputs from identityDef.xml'}),
+      R('Sudden Windows User Login Pattern Change',['a1','ms'],'o',{m:'compares with a learned daily profile'}),
+      R('Sudden Increase in Windows User Login Volume',['a1','ms'],'o',{m:'compares with a learned daily profile'})]},
+    {id:'brute',req:'VPN logs from FortiGate or another VPN gateway, if used (licensed separately, not counted).',t:'Brute force against an account',d:'Repeated failed logons against one account from one source, especially when followed by a success, plus account lockouts.',src:['a1','a2','a8','ms','ei','en','o3','fg'],on:1,
+      flag:'A failure and the success after it must be logged by the same machine: the same server (4625 then 4624) or the same DC (4771 or 4776 failure, then 4768 or 4776 success). Entra sign-ins, success and failure, are in the Application Logon groups, so the application rules catch Entra brute force; Office 365 adds its own rules.',rules:[
+      R('Brute Force Host Login Success',['a1','a2','a8','ms'],'r',{m:'5 or more failures, then a success, within 15 minutes'}),
+      R('Multiple Logon Failures: Server',['ms'],'r'),R('Multiple Logon Failures: Domain',['a2','a8'],'r',{dis:1}),
+      R('Account Locked: Server',['a1','ms'],'r',{m:'4740 from DCs and member servers; the DC must be in the CMDB Server group'}),R('Account Locked: Domain',['a1'],'r',{dis:1,m:'duplicates the Server rule for DCs if enabled'}),
+      R('Concurrent Failed Authentications To Same Account From Multiple Countries',['a1','a2','a8','ms'],'r',{m:'needs public source IPs to geolocate'}),
+      R('Office365: Brute Force Login Attempts - Same User',['o3'],'r'),R('Office365: Brute Force Logon Success',['o3'],'r'),
+      R('Brute Force App Login Success',['ei','en','fg'],'r',{m:'application, VPN, database and web logons, including Entra sign-ins'}),
+      R('Multiple Logon Failures: Misc App',['ei','en'],'r',{m:'5 or more application logon failures per user in 10 minutes'}),
+      R('Suspicious Logon Failure without following successful login',['a1','a2','a8','ms','ei','fg'],'r',{m:'fires after another failure rule when no success follows within 2 hours'})]},
+    {id:'spray',t:'Password spraying',d:'One source trying a few passwords across many accounts on a host, or across many hosts.',src:['a1','ms','o3'],on:1,
+      flag:'Only the Device Logon Failure group counts here, mainly 4625. Kerberos-only spraying (4771 on the DCs) and Entra spraying (Entra failures are in the Application Logon Failure group) are not detected by any built-in rule.',rules:[
+      R('Multiple Logon Failures: Same Src and Dest and Multiple Accounts',['a1','ms'],'r',{m:'3 or more accounts from one source to one host in an hour'}),
+      R('Multiple Logon Failures: Same Src and Multiple Dest',['a1','ms'],'r',{m:'10 or more hosts from one source in an hour'}),
+      R('Office365: Brute Force Login Attempts - Same Source',['o3'],'r',{m:'5 or more failures from one source IP in 15 minutes'})]},
+    {id:'kerb',t:'Kerberos attacks',d:'Kerberoasting (service tickets requested for many SPNs), AS-REP roasting and other ticket manipulation.',src:['a2'],on:1,rules:[
+      R('Windows: Kerberoasting Multiple SPNs',['a2'],'n'),R('Windows: Kerberos Manipulation',['a2'],'r'),
+      R('Windows: Potential AS-REP Roasting via Kerberos TGT Requests',['a2'],'o',{dis:1}),
+      R('Windows: Rubeus Kerberos Abuse',PROC,'n')]},
+    {id:'dcsync',t:'DCSync and AD secrets theft',d:'Directory replication requested by something that is not a domain controller, DPAPI backup key extraction, and bulk user enumeration.',src:['a5'],on:1,
+      flag:'Needs a SACL on the domain object so replication rights are audited.',rules:[
+      R('Windows: Mimikatz DC Sync',['a5'],'r'),R('Windows: Active Directory Replication from Non Machine Account',['a5'],'r'),
+      R('Windows: DPAPI Domain Backup Key Extraction',['a5'],'r'),R('Windows: Potential AD User Enumeration From Non-Machine Account',['a5'],'r')]},
+    {id:'dump',req:'Sysmon (free Microsoft Sysinternals tool) on the servers for LSASS access; process data can come from Sysmon or Security 4688.',t:'Credential dumping on servers',d:'LSASS memory access and dumping tools: Mimikatz, Procdump, comsvcs, Secretsdump, LaZagne and others, plus security package tampering.',src:['pc','s2','s4','wpc','ws2','ws4'],on:1,rules:[
+      R('Windows: LSASS Access by Suspicious Process',LSASS,'n'),R('Windows: Suspicious LSASS Process Access',LSASS,'n'),
+      R('Windows: Mimikatz Command',PROC,'n'),R('Windows: comsvcs.dll MiniDump LSASS',PROCN,'n'),R('Windows: Procdump LSASS Dump',PROCN,'n'),R('Windows: Sensitive Registry Hive Save',PROCN,'n'),
+      R('Windows: Secretsdump Execution via Process or PowerShell',PROC,'n'),R('Windows: Nanodump LSASS Dumping',PROC,'n'),R('Windows: SafetyKatz Credential Dumping',PROC,'n'),
+      R('Windows: Pypykatz Credential Dumping via Process or PowerShell',PROC,'n'),R('Windows: LaZagne Credential Dumping via Process or PowerShell',PROC,'n'),
+      R('Windows: SSP Registration',PROC,'n'),R('Windows: Authentication Package Modified',PROC,'n'),R('Windows: Token Impersonation Tool',PROC,'n')]},
+    {id:'adcs',t:'AD CS abuse',d:'Certificate templates and PKI objects made exploitable (ESC1-ESC7, ESC13, ESC14), CA permission and configuration changes, and certutil or Certipy abuse.',src:['a6','ca','iis'],on:1,needsAdcs:1,
+      flag:'Applies only where AD CS is deployed. The sizing always assumes AD CS with Web Enrollment, because together they add only about 1 MB per day.',rules:[
+      R('Windows: ESC1-Relevant Certificate Template Attribute Modified',['a6'],'n'),R('Windows: AD CS ESC2 Any Purpose EKU Added to Certificate Template',['a6'],'n'),
+      R('Windows: AD CS ESC3 Enrollment Agent EKU Added to Certificate Template',['a6'],'n'),R('Windows: ESC4 Certificate Template ACL Modified',['a6'],'n'),
+      R('Windows: AD CS ESC5 PKI Object ACL Modified',['a6'],'n'),R('Windows: AD CS ESC13 OID Group Link Modified',['a6'],'n'),R('Windows: AD CS ESC14 Explicit Certificate Mapping Modified',['a6'],'n'),
+      R('Windows: Certificate Template Modified',['a6'],'n'),R('Windows: AD CS ESC7 CA Security Permissions Changed',['ca'],'n'),R('Windows: CA Configuration Changed',['ca'],'n'),
+      R('Windows: AD CS Web Enrollment Certificate Request',['iis'],'n',{m:'only where the Web Enrollment role is installed'}),
+      R('Windows: ESC6 EDITF-ATTRIBUTESUBJECTALTNAME2 Enabled with Certutil',PROC,'n'),R('Windows: AD CS ESC10 Certificate Mapping Configuration Changed via Command',PROC,'n'),
+      R('Windows: AD CS ESC16 SID Security Extension Disabled via Command',PROC,'n'),R('Windows: Certipy Credential Abuse',PROC,'n')]},
+    {id:'lat',t:'Lateral movement and AD reconnaissance',d:'Remote service installs such as PsExec and credential-dumping services, and BloodHound or SharpHound collection.',src:['sv','pc','wsv','wpc'],on:0,rules:[
+      R('Windows: PsExec Service Creation',SVC,'n'),R('Windows: Credential Dumping Tools Service Execution - System',SVC,'r'),R('Windows: BloodHound or SharpHound Execution',PROC,'n')]},
+    {id:'decoy',req:'FortiDeceptor or a similar deception platform.',t:'Use of decoy systems and credentials',d:'Logons and operations against decoy hosts and planted credentials. Any interaction means someone is scanning or using stolen credentials, whatever technique produced them.',src:['dc'],on:0,
+      flag:'Alerts only, so log volume is small. Covers what native logs detect poorly, such as stolen or forged credentials used against a decoy.',rules:[
+      R('FortiDeceptor: Successful RDP Login to Decoy',['dc'],'o'),R('FortiDeceptor: Successful SSH Login to Decoy',['dc'],'o'),
+      R('FortiDeceptor: Successful SAMBA Operations to Decoy',['dc'],'o'),R('FortiDeceptor: Successful FTP/TFTP Operations to Decoy',['dc'],'o'),
+      R('FortiDeceptor: IPS Attack to Decoy',['dc'],'o')]},
+    {id:'xdr',req:'Microsoft Defender XDR, with Defender for Identity for identity alerts. Microsoft security licences (E5 Security or add-ons).',t:'Defender XDR alerts, including Defender for Identity',d:'Alerts and incidents from Microsoft Defender XDR, where Defender for Identity detections arrive, correlated in FortiSIEM by MITRE tactic.',src:['dx'],on:0,
+      flag:'These rules work per alert category, not per Defender for Identity detection. None is tagged ITDR.',rules:[
+      R('MS Defender XDR alert rules: high and medium for 16 MITRE tactics',['dx'],'o',{w:30}),R('MS Defender XDR: High and Medium Severity Incident Detected',['dx'],'o',{w:2})]}
+  ];
+  var SRCNAMES={ea:'Entra audit',ei:'Entra sign-ins',eh:'Azure Event Hub',o3:'O365 API',en:'Entra non-interactive',a4:'DC accounts',a6:'DC 5136',a2:'DC Kerberos',a5:'DC 4662',a1:'DC logons',a8:'DC 4776',ms:'Server logons',ca:'CA audit',iis:'IIS',pc:'process creation',s2:'Sysmon 10',sv:'System 7045',s4:'PowerShell 4104',wpc:'process creation (WS)',ws2:'Sysmon 10 (WS)',wsv:'System 7045 (WS)',ws4:'PowerShell 4104 (WS)',fg:'FortiGate (not counted)',dx:'Defender XDR',dc:'FortiDeceptor'};
+
+  var G={};
+  function sc(){return +document.querySelector('input[name=sc]:checked').value}
+  function buildAdv(){
+    var s=SC[sc()];
+    $('#adv').innerHTML=ADV.map(function(f){var v=(f[0] in DEF)?DEF[f[0]]:s[f[0]];
+      return '<div><label for="g-'+f[0]+'">'+f[1]+'</label><input class="in" id="g-'+f[0]+'" type="number" min="0" step="any" inputmode="decimal" autocomplete="off" value="'+v+'"></div>'}).join('');
+  }
+  function applyScenario(){var s=SC[sc()];['cpu','srvShare','burst','bizShare'].forEach(function(k){$('#g-'+k).value=s[k]})}
+  function readG(){
+    ADV.forEach(function(f){G[f[0]]=num($('#g-'+f[0]))});
+    G.users=num($('#users')); G.env=$('#env').value;
+    G.pc=document.querySelector('input[name=pc]:checked').value; G.ws=$('#ws').checked; G.ps=$('#ps').checked; G.en=$('#en').checked; G.dcmult=$('#dcmult').checked; G.sc=sc();
+    G.hasDir=G.env!=='cloud'; G.hasEntra=G.env!=='onprem';
+    G.hasCA=G.hasDir&&G.cas>0; G.hasWeb=G.hasCA;
+    var derivedSrv=G.users*G.cpu*G.srvShare/100;
+    G.member=G.srvOverride>0?Math.max(0,G.srvOverride-(G.hasDir?G.dcs+(G.hasCA?G.cas:0):0)):derivedSrv;
+    G.servers=G.srvOverride>0?G.srvOverride:derivedSrv+(G.hasDir?G.dcs+(G.hasCA?G.cas:0):0);
+    G.wsCount=G.users*G.cpu*(1-G.srvShare/100);
+  }
+  function avail(id){
+    var s=SRC[id];
+    if(s.g==='entra'&&!G.hasEntra)return false;
+    if(s.g==='dir'&&!G.hasDir)return false;
+    if(s.g==='adcs'&&!G.hasCA)return false;
+    if(s.g==='web'&&!G.hasWeb)return false;
+    if(s.opt==='ps'&&!G.ps)return false;
+    if(s.opt==='en'&&!G.en)return false;
+    if(s.opt==='ws'&&!G.ws)return false;
+    if(s.opt==='wsps'&&!(G.ws&&G.ps))return false;
+        return true;
+  }
+  function events(id){
+    var s=SRC[id], r=s.rate[G.sc], d;
+    if(s.drv==='user')d=G.users; else if(s.drv==='tenant')d=1; else if(s.drv==='server')d=G.servers;
+    else if(s.drv==='member')d=G.member; else if(s.drv==='ws')d=G.wsCount; else if(s.drv==='ca')d=G.hasCA?G.cas:0; else d=0;
+    return r*d*(s.dc&&G.dcmult?G.dcs:1);
+  }
+  function kb(id){if((id==='pc'||id==='wpc')&&G.pc==='4688')return 1.5;return SRC[id].kb}
+  function ucAvailable(u){
+    if(u.needsAdcs&&!G.hasCA)return false;
+    for(var i=0;i<u.src.length;i++)if(avail(u.src[i]))return true;
+    return false;
+  }
+  function activeSet(ucIds){
+    var a={};
+    UC.forEach(function(u){if(ucIds[u.id]&&ucAvailable(u))u.src.forEach(function(s){if(avail(s))a[s]=true})});
+    return a;
+  }
+  function totals(a){
+    var mb=0,ev=0,fmb=0;
+    Object.keys(a).forEach(function(id){var e=events(id),m=e*kb(id)/1000;if(SRC[id].free){fmb+=m}else{ev+=e;mb+=m}});
+    return {mb:mb,ev:ev,fmb:fmb};
+  }
+  function selIds(){var o={};UC.forEach(function(u){o[u.id]=$('#u-'+u.id).checked});return o}
+
+  function build(){
+    $('#ucs').innerHTML=UC.map(function(u){
+      var chips=u.src.filter(function(s){return !SRC[s].opt}).map(function(s){return '<span class="chip'+(SRC[s].free?' free':'')+'" data-s="'+s+'">'+SRCNAMES[s]+'</span>'}).join('');
+      return '<div class="uc" id="b-'+u.id+'">'+
+        '<input type="checkbox" id="u-'+u.id+'"'+(u.on?' checked':'')+' aria-describedby="d-'+u.id+'">'+
+        '<div><label class="t" for="u-'+u.id+'">'+u.t+'</label><div class="d" id="d-'+u.id+'">'+u.d+'</div><div class="chips">'+chips+'</div>'+(u.req?'<div class="req"><b>Requires:</b> '+u.req+'</div>':'')+
+        (u.flag?'<div class="flag">'+u.flag+'</div>':'')+'<div class="flag" id="na-'+u.id+'" hidden></div></div>'+
+        '<div class="cost"><b id="c-'+u.id+'">0</b><span id="cl-'+u.id+'"></span><div class="cb"><i id="cb-'+u.id+'"></i></div><span class="cov" id="cv-'+u.id+'"></span></div>'+
+        '<details><summary id="rs-'+u.id+'">Rules</summary><ul class="rl" id="rl-'+u.id+'"></ul></details></div>';
+    }).join('');
+  }
+
+  function srcLabel(ids){
+    var names=[];ids.forEach(function(s){var n=SRCNAMES[s].replace(' (WS)','');if(names.indexOf(n)<0)names.push(n)});
+    return names.join(' or ');
+  }
+
+  function update(){
+    readG();
+    set('sc-note',SC[G.sc].note);
+    set('pc-note',G.pc==='sysmon'?'Sysmon event 1. Also needed by most Sigma-based rules. Sysmon 10 (LSASS) requires Sysmon in either case.':'Security 4688 with "Include command line in process creation events" enabled. Covers the same process rules without Sysmon; Sysmon 10 for the two LSASS rules still needs Sysmon.');
+
+    var sel=selIds(), act=activeSet(sel), T=totals(act), maxMarg=0, marg={}, stand={};
+    UC.forEach(function(u){
+      var o={};for(var k in sel)o[k]=sel[k];
+      o[u.id]=!sel[u.id];
+      var t2=totals(activeSet(o));
+      marg[u.id]=sel[u.id]?T.mb-t2.mb:t2.mb-T.mb;
+      var only={};only[u.id]=true; stand[u.id]=totals(activeSet(only)).mb;
+    });
+    var fair={};
+    UC.forEach(function(u){fair[u.id]=0});
+    Object.keys(act).forEach(function(id){
+      if(SRC[id].free)return;
+      var users=UC.filter(function(u){return sel[u.id]&&ucAvailable(u)&&u.src.indexOf(id)>=0});
+      var m=events(id)*kb(id)/1000;
+      users.forEach(function(u){fair[u.id]+=m/users.length});
+    });
+    UC.forEach(function(u){var v=(sel[u.id]&&ucAvailable(u))?fair[u.id]:marg[u.id]; if(v>maxMarg)maxMarg=v});
+    window.__fair=fair; window.__total=T.mb;
+    var covered57=0, seen57={};
+    UC.forEach(function(u){
+      var ok=ucAvailable(u), on=sel[u.id]&&ok, box=$('#b-'+u.id);
+      box.classList.toggle('sel',on); box.classList.toggle('na',!ok);
+      $('#u-'+u.id).disabled=!ok;
+      var na=$('#na-'+u.id);
+      if(!ok){na.hidden=false;na.textContent=u.needsAdcs?'Not available: AD CS needs Active Directory.':'Not available in this environment.'}else na.hidden=true;
+      Array.prototype.forEach.call(box.querySelectorAll('.chip'),function(c){c.classList.toggle('gone',!avail(c.getAttribute('data-s')))});
+      var m=marg[u.id], f=fair[u.id], shown=on?f:m;
+      set('c-'+u.id,ok?(on?vol(f):'+ '+vol(m)):'—');
+      set('cl-'+u.id,ok?(on?'per day, fair share. Removing it saves '+vol(m)+'. '+vol(stand[u.id])+' on its own':'per day if added. '+vol(stand[u.id])+' on its own'):'');
+      $('#cb-'+u.id).style.width=(ok&&maxMarg>0?shown/maxMarg*100:0)+'%';
+      var tot=0,cov=0,html='';
+      u.rules.forEach(function(r){
+        var w=r.w||1, isCov=false;
+        for(var i=0;i<r.src.length;i++)if(act[r.src[i]]){isCov=true;break}
+        if(u.needsAdcs&&!G.hasCA)isCov=false;
+        tot+=w; if(isCov)cov+=w;
+        if(r.tag==='n'&&isCov&&!seen57[r.n]){seen57[r.n]=1;covered57++}
+        var tag=r.tag==='n'?'new ITDR rule in 7.6.0':r.tag==='r'?'existing rule, added to ITDR in 7.6.0':'existing rule, not in ITDR';
+        var need=isCov?'':'<br><span class="need">needs '+srcLabel(r.src.filter(function(s){return !SRC[s].opt||s==='s4'}))+'</span>';
+        html+='<li class="'+(isCov?'':'no')+'">'+r.n+(r.w?' ('+r.w+' rules)':'')+'<br><span class="m">'+tag+(r.dis?', disabled by default':'')+(r.m?', '+r.m:'')+'</span>'+need+'</li>';
+      });
+      $('#rl-'+u.id).innerHTML=html;
+      set('rs-'+u.id,'Rules: '+cov+' of '+tot+' covered by the current selection');
+      set('cv-'+u.id,on?cov+' of '+tot+' rules covered':tot+' rules');
+    });
+
+    var gb=T.mb/1000, avg=T.ev/86400, biz=G.bizHours>0?T.ev*(G.bizShare/100)/(G.bizHours*3600):0, peak=biz*G.burst;
+    set('gb',gbf(gb)+' GB');
+    set('st-eps',peak<10?peak.toFixed(1):n0(peak)); set('st-ev',n0(T.ev));
+    set('st-store',gbf(gb*G.ratio/100*G.retention)+' GB'); set('st-storel','stored over '+n0(G.retention)+' days at '+n0(G.ratio)+'%');
+    set('st-pu',G.users>0?(T.mb/G.users).toFixed(2):'0'); set('st-57',String(covered57));
+
+    // sources table
+    var ids=Object.keys(act).sort(function(a,b){return events(b)*kb(b)-events(a)*kb(a)});
+    $('#src').innerHTML=ids.length?ids.map(function(id){
+      var s=SRC[id], e=events(id), m=e*kb(id)/1000;
+      var by=UC.filter(function(u){return sel[u.id]&&ucAvailable(u)&&u.src.indexOf(id)>=0}).map(function(u){return u.t}).join(', ');
+      var per={user:'user',tenant:'tenant',server:'server',member:'member server',ws:'workstation',ca:'CA server'}[s.drv];
+      var name=s.name+((id==='pc'||id==='wpc')?(G.pc==='4688'?' (Security 4688)':' (Sysmon 1)'):'');
+      return '<tr class="'+(s.free?'free':'')+'"><td>'+name+'</td><td><span class="s">'+by+'</span></td>'+
+        '<td class="r">'+n1(s.rate[G.sc])+' / '+per+(s.dc&&G.dcmult?' / DC':'')+'</td><td class="r">'+n0(e)+'</td><td class="r">'+vol(m)+'</td>'+
+        '<td class="r">'+(s.free?'not counted':(T.mb>0?(m/T.mb*100).toFixed(0)+'%':'0%'))+'</td></tr>';
+    }).join(''):'<tr><td colspan="6">Tick a use case to see the log sources it needs.</td></tr>';
+
+    // summary
+    var envTxt={hybrid:'hybrid (Entra ID and Active Directory)',cloud:'Entra ID only',onprem:'Active Directory only'}[G.env];
+    var lines=['Identity log sizing for FortiSIEM 7.6.0 ('+SC[G.sc].name+' scenario)','',
+      'Users: '+n0(G.users)+'. Environment: '+envTxt+'.'+(G.hasCA?' AD CS and Web Enrollment are assumed in the sizing; their 15 rules apply only where they are deployed.':''),
+      'Servers: '+n0(G.servers)+(G.ws?'. Workstations: '+n0(G.wsCount):'')+'. Process data from '+(G.pc==='sysmon'?'Sysmon':'Security 4688')+'.','',
+      'Estimated volume: '+gbf(gb)+' GB/day raw ('+(G.users>0?(T.mb/G.users).toFixed(2):'0')+' MB per user per day), '+n0(T.ev)+' events/day, peak about '+(peak<10?peak.toFixed(1):n0(peak))+' EPS.',
+      'Stored over '+n0(G.retention)+' days: about '+gbf(gb*G.ratio/100*G.retention)+' GB at '+n0(G.ratio)+'% of raw.'+(T.fmb>0?' FortiGate authentication ('+vol(T.fmb)+'/day) is licensed separately and not included.':''),'',
+      'Use cases:'];
+    UC.forEach(function(u){if(sel[u.id]&&ucAvailable(u)){var cov=0,tot=0;u.rules.forEach(function(r){var w=r.w||1;tot+=w;for(var i=0;i<r.src.length;i++)if(act[r.src[i]]){cov+=w;break}});lines.push('- '+u.t+': '+cov+' of '+tot+' rules'+(u.est?' (estimate)':''));if(u.req)lines.push('  Requires: '+u.req)}});
+    lines.push('','New 7.6.0 ITDR rules covered: '+covered57+' of 57.','Rates and event sizes are estimates; validate the largest sources with a pilot before committing.');
+    $('#sum').value=lines.join('\n');
+  }
+
+  function reset(){
+    $('#users').value=200; $('#env').value='hybrid';
+    document.querySelector('input[name=sc][value="1"]').checked=true;
+    document.querySelector('input[name=pc][value=sysmon]').checked=true;
+    $('#ws').checked=false; $('#ps').checked=false; $('#en').checked=false; $('#dcmult').checked=false;
+    buildAdv(); UC.forEach(function(u){$('#u-'+u.id).checked=!!u.on}); update();
+  }
+
+  build(); buildAdv(); applyScenario(); update();
+  document.addEventListener('input',update);
+  document.addEventListener('change',function(e){if(e.target&&e.target.name==='sc')applyScenario();update()});
+  $('#reset').addEventListener('click',reset);
+  window.addEventListener('pageshow',update);
+})();
+</script>
+</body>
+</html>

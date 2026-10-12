@@ -193,8 +193,8 @@ textarea{width:100%;min-height:210px;font:13px/1.45 "IBM Plex Sans",system-ui,sa
       <div class="box">
         <h3>Process data from</h3>
         <div class="seg" role="radiogroup" aria-label="Process creation source">
-          <label><input type="radio" name="pc" value="sysmon" autocomplete="off" checked><span>Sysmon</span></label>
-          <label><input type="radio" name="pc" value="4688" autocomplete="off"><span>Security 4688</span></label>
+          <label><input type="radio" name="pc" value="4688" autocomplete="off" checked><span>Security 4688</span></label>
+          <label><input type="radio" name="pc" value="sysmon" autocomplete="off"><span>Sysmon</span></label>
         </div>
         <p class="note" id="pc-note"></p>
       </div>
@@ -498,7 +498,7 @@ window.addEventListener("error",function(e){var d=document.createElement("div");
   function reset(){
     $('#users').value=200; $('#env').value='hybrid';
     document.querySelector('input[name=sc][value="1"]').checked=true;
-    document.querySelector('input[name=pc][value=sysmon]').checked=true;
+    document.querySelector('input[name=pc][value="4688"]').checked=true;
     $('#ws').checked=false; $('#ps').checked=false; $('#en').checked=false; $('#dcmult').checked=false;
     buildAdv(); UC.forEach(function(u){$('#u-'+u.id).checked=!!u.on}); update();
   }

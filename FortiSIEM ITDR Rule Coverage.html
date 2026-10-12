@@ -168,8 +168,8 @@ ul.ls li{margin:0 0 8px;max-width:70ch}
       <div class="group">
         <div class="gl">Process creation from</div>
         <div class="seg" role="radiogroup" aria-label="Process creation source">
-          <label><input type="radio" name="pc" value="psys" autocomplete="off" checked><span>Sysmon</span></label>
-          <label><input type="radio" name="pc" value="p4688" autocomplete="off"><span>4688</span></label>
+          <label><input type="radio" name="pc" value="p4688" autocomplete="off" checked><span>4688</span></label>
+          <label><input type="radio" name="pc" value="psys" autocomplete="off"><span>Sysmon</span></label>
           <label><input type="radio" name="pc" value="both" autocomplete="off"><span>Both</span></label>
         </div>
         <p class="note" id="pc-note"></p>
@@ -561,7 +561,7 @@ window.addEventListener("error",function(e){var d=document.createElement("div");
   function reset(){
     document.querySelector('input[name=sc][value=high]').checked=true;
     document.querySelector('input[name=mode][value=hybrid]').checked=true;
-    document.querySelector('input[name=pc][value=psys]').checked=true;
+    document.querySelector('input[name=pc][value=p4688]').checked=true;
     Object.keys(KEEP).forEach(function(k){$('#g-'+k).value=KEEP[k]});
     $('#g-dcMult').checked=true;
     CARDS.forEach(function(c){$('#inc-'+c.k).checked=(c.k!=='WS')});

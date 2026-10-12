@@ -171,9 +171,9 @@ textarea{width:100%;min-height:210px;font:13px/1.45 "IBM Plex Sans",system-ui,sa
           <li>Every rule listed under a use case was read from the FortiSIEM 7.6.0 rule definitions (crawled 5 October 2026), including which event types it reads. A rule counts as covered when at least one source it accepts is collected.</li>
           <li>Rates per user, per server and per tenant are estimates, not measurements. Low, Medium and High change rates, computers per user, server share and the burst factor. Measure the largest sources before quoting: process creation on servers and member-server logons.</li>
           <li>Sizes are uncompressed bytes as received. Stored size depends on how FortiSIEM writes events, so replace the stored percentage with your sizing tool's per-event figure.</li>
-          <li>FortiGate authentication is listed under password spraying but never added to volume, because FortiGate logs are licensed separately.</li>
+          <li>FortiGate VPN and admin authentication is only included when the customer is a SOCaaS customer, and is then never added to volume. VPN gateways and network authentication from other vendors, FortiClient and FortiAuthenticator are optional and counted.</li>
           <li>The brute-force and spraying rules use FortiSIEM logon event-type groups. Their Windows members were checked in a 7.6.0 system (Device and Domain Logon Failure and Success); the Windows groups contain no Entra or Office 365 event types, while Entra sign-in success and failure belong to the Application Logon groups.</li>
-          <li>Sudden User Location Change has no log event types in its rule. It fires on an event from FortiSIEM's identity engine, whose inputs are the successful-logon events listed in /opt/phoenix/config/identityDef.xml, including Entra interactive sign-ins, Office 365 logins and VPN tunnel-up. The two Windows login-profile rules also fire on internal events; their inputs are assumed to be Windows logon events, which the public documentation does not confirm.</li>
+          <li>Sudden User Location Change has no log event types in its rule. It fires on an event from FortiSIEM's identity engine, whose inputs are the successful-logon events listed in /opt/phoenix/config/identityDef.xml: Entra interactive sign-ins (added in 7.6), Office 365 logins, VPN logons from FortiGate SSL VPN, FortiClient IPsec, Cisco ASA and AnyConnect, Palo Alto GlobalProtect, Citrix NetScaler Gateway and Juniper Secure Access, FortiGate logins, RADIUS and AAA servers (Microsoft NPS, Cisco ACS, FortiAuthenticator), Okta, AWS, Google Workspace and Salesforce. Other VPN vendors, such as Check Point or Zscaler, can be added to the file. The two Windows login-profile rules also fire on internal events; their inputs are assumed to be Windows logon events, which the public documentation does not confirm.</li>
           <li>Use cases that depend on a product beyond FortiSIEM and native Windows, Entra and Microsoft 365 logs say so under Requires. Entra sign-in log export needs Entra ID P1, which is included in Microsoft 365 E3 and Business Premium.</li>
           <li>The 3 new Linux ITDR rules are not part of these use cases.</li>
         </ul>
@@ -203,6 +203,14 @@ textarea{width:100%;min-height:210px;font:13px/1.45 "IBM Plex Sans",system-ui,sa
         <label class="chk"><input type="checkbox" id="ws"><span>Collect host telemetry on workstations too</span></label>
         <label class="chk"><input type="checkbox" id="ps"><span>Add PowerShell script blocks (4104)</span></label>
         <p class="note">Workstations multiply host volume many times over. PowerShell adds detection of tools run inside PowerShell; it covers no extra rules.</p>
+      </div>
+      <div class="box">
+        <h3>VPN and authentication</h3>
+        <label class="chk"><input type="checkbox" id="soc"><span>SOCaaS customer: include FortiGate VPN and admin authentication</span></label>
+        <label class="chk"><input type="checkbox" id="vpn"><span>Add VPN gateways and network admin authentication from other vendors</span></label>
+        <label class="chk"><input type="checkbox" id="fct"><span>Add FortiClient VPN logs</span></label>
+        <label class="chk"><input type="checkbox" id="fac"><span>Add FortiAuthenticator logs</span></label>
+        <p class="note">FortiGate logs are covered by the SOCaaS licence and never added to volume. Other vendors, FortiClient and FortiAuthenticator are counted.</p>
       </div>
       <div class="box">
         <h3>Cloud coverage</h3>
@@ -264,7 +272,10 @@ window.addEventListener("error",function(e){var d=document.createElement("div");
     ws2:{name:'Workstations: Sysmon 10 (LSASS access)',g:'host',drv:'ws',rate:[30,60,100],kb:1.5,opt:'ws',base:'s2'},
     wsv:{name:'Workstations: service installs (System 7045)',g:'host',drv:'ws',rate:[0.5,1,2],kb:1.5,opt:'ws',base:'sv'},
     ws4:{name:'Workstations: PowerShell 4104',g:'host',drv:'ws',rate:[100,200,300],kb:3,opt:'wsps',base:'s4'},
-    fg:{name:'FortiGate: VPN and admin authentication',g:'any',drv:'user',rate:[5,10,20],kb:0.6,free:1},
+    fg:{name:'FortiGate: VPN and admin authentication (SOCaaS)',g:'any',drv:'user',rate:[5,10,20],kb:0.6,free:1,opt:'soc'},
+    vp:{name:'VPN gateways and network admin authentication (other vendors)',g:'any',drv:'user',rate:[5,10,20],kb:0.8,opt:'vpn'},
+    fct:{name:'FortiClient: VPN connections',g:'any',drv:'user',rate:[2,5,10],kb:1,opt:'fct'},
+    fac:{name:'FortiAuthenticator: authentication',g:'any',drv:'user',rate:[5,10,20],kb:0.8,opt:'fac'},
     dc:{name:'FortiDeceptor alerts',g:'any',drv:'tenant',rate:[50,200,1000],kb:1.5}
   };
   var PROC=['pc','s4','wpc','ws4'], PROCN=['pc','wpc'], LSASS=['s2','ws2'], SVC=['sv','wsv'];
@@ -284,21 +295,21 @@ window.addEventListener("error",function(e){var d=document.createElement("div");
     {id:'mfa',t:'MFA and Conditional Access weakening',d:'Sign-ins where MFA was bypassed or satisfied by a claim, Conditional Access policies changed or deleted, and MFA turned off for a user.',src:['ei','ea','eh'],on:1,rules:[
       R('Azure Entra ID: MFA Bypass Or Satisfied By Claim',['ei'],'n'),R('Azure Entra ID: Conditional Access Disabled',['ea'],'n',{m:'fires on any policy update or delete'}),
       R('Azure Conditional Access Policy Modified',['eh'],'o'),R('Multi-Factor Authentication Disabled for an Azure User',['eh'],'o')]},
-    {id:'travel',req:'VPN logs from FortiGate or another VPN gateway, if used (licensed separately, not counted).',t:'Suspicious logins and stolen credentials',d:'Logins from two places too far apart for the time between them, and Windows users whose daily login pattern or volume suddenly departs from their normal profile.',src:['ei','fg','a1'],on:1,
+    {id:'travel',req:'VPN or network admin authentication logs, if used: FortiGate for SOCaaS customers (not counted) or other vendors, FortiClient and FortiAuthenticator (counted).',t:'Suspicious logins and stolen credentials',d:'Logins from two places too far apart for the time between them, and Windows users whose daily login pattern or volume suddenly departs from their normal profile.',src:['ei','o3','vp','fg','fct','fac','a1'],on:1,
       rules:[
-      R('Sudden User Location Change',['ei','o3','fg'],'r',{m:'inputs from identityDef.xml'}),
+      R('Sudden User Location Change',['ei','o3','vp','fg','fct','fac'],'r',{m:'identity engine. Built-in VPN inputs: FortiGate SSL VPN, FortiClient IPsec, Cisco ASA and AnyConnect, Palo Alto GlobalProtect, Citrix NetScaler Gateway and Juniper Secure Access; other vendors can be added in identityDef.xml'}),
       R('Sudden Windows User Login Pattern Change',['a1','ms'],'o',{m:'compares with a learned daily profile'}),
       R('Sudden Increase in Windows User Login Volume',['a1','ms'],'o',{m:'compares with a learned daily profile'})]},
-    {id:'brute',req:'VPN logs from FortiGate or another VPN gateway, if used (licensed separately, not counted).',t:'Brute force against an account',d:'Repeated failed logons against one account from one source, especially when followed by a success, plus account lockouts.',src:['a1','a2','a8','ms','ei','en','o3','fg'],on:1,
+    {id:'brute',req:'VPN or network admin authentication logs, if used: FortiGate for SOCaaS customers (not counted) or other vendors (counted).',t:'Brute force against an account',d:'Repeated failed logons against one account from one source, especially when followed by a success, plus account lockouts.',src:['a1','a2','a8','ms','ei','en','o3','vp','fg'],on:1,
       rules:[
       R('Brute Force Host Login Success',['a1','a2','a8','ms'],'r',{m:'5 or more failures, then a success, within 15 minutes'}),
       R('Multiple Logon Failures: Server',['ms'],'r'),R('Multiple Logon Failures: Domain',['a2','a8'],'r',{dis:1}),
       R('Account Locked: Server',['a1','ms'],'r',{m:'4740 from DCs and member servers; the DC must be in the CMDB Server group'}),R('Account Locked: Domain',['a1'],'r',{dis:1,m:'duplicates the Server rule for DCs if enabled'}),
       R('Concurrent Failed Authentications To Same Account From Multiple Countries',['a1','a2','a8','ms'],'r',{m:'needs public source IPs to geolocate'}),
       R('Office365: Brute Force Login Attempts - Same User',['o3'],'r'),R('Office365: Brute Force Logon Success',['o3'],'r'),
-      R('Brute Force App Login Success',['ei','en','fg'],'r',{m:'application, VPN, database and web logons, including Entra sign-ins'}),
+      R('Brute Force App Login Success',['ei','en','vp','fg'],'r',{m:'application, VPN, database and web logons, including Entra sign-ins'}),
       R('Multiple Logon Failures: Misc App',['ei','en'],'r',{m:'5 or more application logon failures per user in 10 minutes'}),
-      R('Suspicious Logon Failure without following successful login',['a1','a2','a8','ms','ei','fg'],'r',{m:'fires after another failure rule when no success follows within 2 hours'})]},
+      R('Suspicious Logon Failure without following successful login',['a1','a2','a8','ms','ei','vp','fg'],'r',{m:'fires after another failure rule when no success follows within 2 hours'})]},
     {id:'spray',t:'Password spraying',d:'One source trying a few passwords across many accounts on a host, or across many hosts.',src:['a1','ms','o3'],on:1,
       rules:[
       R('Multiple Logon Failures: Same Src and Dest and Multiple Accounts',['a1','ms'],'r',{m:'3 or more accounts from one source to one host in an hour'}),
@@ -335,7 +346,7 @@ window.addEventListener("error",function(e){var d=document.createElement("div");
       R('FortiDeceptor: Successful SAMBA Operations to Decoy',['dc'],'o'),R('FortiDeceptor: Successful FTP/TFTP Operations to Decoy',['dc'],'o'),
       R('FortiDeceptor: IPS Attack to Decoy',['dc'],'o')]}
   ];
-  var SRCNAMES={ea:'Entra audit',ei:'Entra sign-ins',eh:'Azure Event Hub',o3:'O365 API',en:'Entra non-interactive',a4:'DC accounts',a6:'DC 5136',a2:'DC Kerberos',a5:'DC 4662',a1:'DC logons',a8:'DC 4776',ms:'Server logons',ca:'CA audit',iis:'IIS',pc:'process creation',s2:'Sysmon 10',sv:'System 7045',s4:'PowerShell 4104',wpc:'process creation (WS)',ws2:'Sysmon 10 (WS)',wsv:'System 7045 (WS)',ws4:'PowerShell 4104 (WS)',fg:'FortiGate (not counted)',dc:'FortiDeceptor'};
+  var SRCNAMES={ea:'Entra audit',ei:'Entra sign-ins',eh:'Azure Event Hub',o3:'O365 API',en:'Entra non-interactive',a4:'DC accounts',a6:'DC 5136',a2:'DC Kerberos',a5:'DC 4662',a1:'DC logons',a8:'DC 4776',ms:'Server logons',ca:'CA audit',iis:'IIS',pc:'process creation',s2:'Sysmon 10',sv:'System 7045',s4:'PowerShell 4104',wpc:'process creation (WS)',ws2:'Sysmon 10 (WS)',wsv:'System 7045 (WS)',ws4:'PowerShell 4104 (WS)',fg:'FortiGate (SOCaaS, not counted)',vp:'VPN and admin auth (other vendors)',fct:'FortiClient',fac:'FortiAuthenticator',dc:'FortiDeceptor'};
 
   var G={};
   function sc(){return +document.querySelector('input[name=sc]:checked').value}
@@ -348,7 +359,7 @@ window.addEventListener("error",function(e){var d=document.createElement("div");
   function readG(){
     ADV.forEach(function(f){G[f[0]]=num($('#g-'+f[0]))});
     G.users=num($('#users')); G.env=$('#env').value;
-    G.pc=document.querySelector('input[name=pc]:checked').value; G.ws=$('#ws').checked; G.ps=$('#ps').checked; G.en=$('#en').checked; G.dcmult=$('#dcmult').checked; G.sc=sc();
+    G.pc=document.querySelector('input[name=pc]:checked').value; G.ws=$('#ws').checked; G.ps=$('#ps').checked; G.en=$('#en').checked; G.soc=$('#soc').checked; G.vpn=$('#vpn').checked; G.fct=$('#fct').checked; G.fac=$('#fac').checked; G.dcmult=$('#dcmult').checked; G.sc=sc();
     G.hasDir=G.env!=='cloud'; G.hasEntra=G.env!=='onprem';
     G.hasCA=G.hasDir&&G.cas>0; G.hasWeb=G.hasCA;
     var derivedSrv=G.users*G.cpu*G.srvShare/100;
@@ -364,6 +375,10 @@ window.addEventListener("error",function(e){var d=document.createElement("div");
     if(s.g==='web'&&!G.hasWeb)return false;
     if(s.opt==='ps'&&!G.ps)return false;
     if(s.opt==='en'&&!G.en)return false;
+    if(s.opt==='soc'&&!G.soc)return false;
+    if(s.opt==='vpn'&&!G.vpn)return false;
+    if(s.opt==='fct'&&!G.fct)return false;
+    if(s.opt==='fac'&&!G.fac)return false;
     if(s.opt==='ws'&&!G.ws)return false;
     if(s.opt==='wsps'&&!(G.ws&&G.ps))return false;
         return true;
@@ -394,7 +409,7 @@ window.addEventListener("error",function(e){var d=document.createElement("div");
 
   function build(){
     $('#ucs').innerHTML=UC.map(function(u){
-      var chips=u.src.filter(function(s){return !SRC[s].opt}).map(function(s){return '<span class="chip'+(SRC[s].free?' free':'')+'" data-s="'+s+'">'+SRCNAMES[s]+'</span>'}).join('');
+      var chips=u.src.filter(function(s){return !SRC[s].opt||['soc','vpn','fct','fac'].indexOf(SRC[s].opt)>=0}).map(function(s){return '<span class="chip'+(SRC[s].free?' free':'')+'" data-s="'+s+'">'+SRCNAMES[s]+'</span>'}).join('');
       return '<div class="uc" id="b-'+u.id+'">'+
         '<input type="checkbox" id="u-'+u.id+'"'+(u.on?' checked':'')+' aria-describedby="d-'+u.id+'">'+
         '<div><label class="t" for="u-'+u.id+'">'+u.t+'</label><div class="d" id="d-'+u.id+'">'+u.d+'</div><div class="chips">'+chips+'</div>'+(u.req?'<div class="req"><b>Requires:</b> '+u.req+'</div>':'')+
@@ -439,7 +454,7 @@ window.addEventListener("error",function(e){var d=document.createElement("div");
       $('#u-'+u.id).disabled=!ok;
       var na=$('#na-'+u.id);
       if(!ok){na.hidden=false;na.textContent=u.needsAdcs?'Not available: AD CS needs Active Directory.':'Not available in this environment.'}else na.hidden=true;
-      Array.prototype.forEach.call(box.querySelectorAll('.chip'),function(c){c.classList.toggle('gone',!avail(c.getAttribute('data-s')))});
+      Array.prototype.forEach.call(box.querySelectorAll('.chip'),function(c){var s=c.getAttribute('data-s');if(SRC[s].opt){c.hidden=!avail(s)}else{c.classList.toggle('gone',!avail(s))}});
       var m=marg[u.id], f=fair[u.id], shown=on?f:m;
       set('c-'+u.id,ok?(on?vol(f):'+ '+vol(m)):'—');
       set('cl-'+u.id,ok?(on?'per day, fair share. Removing it saves '+vol(m)+'. '+vol(stand[u.id])+' on its own':'per day if added. '+vol(stand[u.id])+' on its own'):'');
@@ -452,7 +467,7 @@ window.addEventListener("error",function(e){var d=document.createElement("div");
         tot+=w; if(isCov)cov+=w;
         if(r.tag==='n'&&isCov&&!seen57[r.n]){seen57[r.n]=1;covered57++}
         var tag=r.tag==='n'?'new ITDR rule in 7.6.0':r.tag==='r'?'existing rule, added to ITDR in 7.6.0':'existing rule, not in ITDR';
-        var need=isCov?'':'<br><span class="need">needs '+srcLabel(r.src.filter(function(s){return !SRC[s].opt||s==='s4'}))+'</span>';
+        var nsrc=r.src.filter(function(s){return !SRC[s].opt||s==='s4'||s==='vp'||s==='fg'});if(!nsrc.length)nsrc=r.src;var need=isCov?'':'<br><span class="need">needs '+srcLabel(nsrc)+'</span>';
         html+='<li class="'+(isCov?'':'no')+'">'+r.n+(r.w?' ('+r.w+' rules)':'')+'<br><span class="m">'+tag+(r.dis?', disabled by default':'')+(r.m?', '+r.m:'')+'</span>'+need+'</li>';
       });
       $('#rl-'+u.id).innerHTML=html;
@@ -484,7 +499,7 @@ window.addEventListener("error",function(e){var d=document.createElement("div");
       'Users: '+n0(G.users)+'. Environment: '+envTxt+'.'+(G.hasCA?' AD CS and Web Enrollment are assumed in the sizing; their 15 rules apply only where they are deployed.':''),
       'Servers: '+n0(G.servers)+(G.ws?'. Workstations: '+n0(G.wsCount):'')+'. Process data from '+(G.pc==='sysmon'?'Sysmon':'Security 4688')+'.','',
       'Estimated volume: '+gbf(gb)+' GB/day raw ('+(G.users>0?(T.mb/G.users).toFixed(2):'0')+' MB per user per day), '+n0(T.ev)+' events/day, peak about '+(peak<10?peak.toFixed(1):n0(peak))+' EPS.',
-      'Stored over '+n0(G.retention)+' days: about '+gbf(gb*G.ratio/100*G.retention)+' GB at '+n0(G.ratio)+'% of raw.'+(T.fmb>0?' FortiGate authentication ('+vol(T.fmb)+'/day) is licensed separately and not included.':''),'',
+      'Stored over '+n0(G.retention)+' days: about '+gbf(gb*G.ratio/100*G.retention)+' GB at '+n0(G.ratio)+'% of raw.'+(T.fmb>0?' FortiGate VPN and admin authentication ('+vol(T.fmb)+'/day) is covered by SOCaaS and not included.':''),'',
       'Use cases:'];
     UC.forEach(function(u){if(sel[u.id]&&ucAvailable(u)){var cov=0,tot=0;u.rules.forEach(function(r){var w=r.w||1;tot+=w;for(var i=0;i<r.src.length;i++)if(act[r.src[i]]){cov+=w;break}});lines.push('- '+u.t+': '+cov+' of '+tot+' rules'+(u.est?' (estimate)':''));if(u.req)lines.push('  Requires: '+u.req)}});
     lines.push('','New 7.6.0 ITDR rules covered: '+covered57+' of 57.','Rates and event sizes are estimates; validate the largest sources with a pilot before committing.');
@@ -495,7 +510,7 @@ window.addEventListener("error",function(e){var d=document.createElement("div");
     $('#users').value=200; $('#env').value='hybrid';
     document.querySelector('input[name=sc][value="1"]').checked=true;
     document.querySelector('input[name=pc][value="4688"]').checked=true;
-    $('#ws').checked=false; $('#ps').checked=false; $('#en').checked=false; $('#dcmult').checked=false;
+    $('#ws').checked=false; $('#ps').checked=false; $('#en').checked=false; $('#soc').checked=false; $('#vpn').checked=false; $('#fct').checked=false; $('#fac').checked=false; $('#dcmult').checked=false;
     buildAdv(); UC.forEach(function(u){$('#u-'+u.id).checked=!!u.on}); update();
   }
 

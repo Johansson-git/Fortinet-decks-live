@@ -141,7 +141,7 @@ button{font:inherit;font-size:13.5px;color:var(--ink);background:var(--surface);
 
 .sec{margin-top:34px}
 .tablewrap{overflow-x:auto;background:var(--surface);border-top:2px solid var(--ink)}
-table{width:100%;border-collapse:collapse;min-width:720px;font-size:13.5px}
+table{width:100%;border-collapse:collapse;min-width:780px;font-size:13.5px}
 th{font-size:12px;font-weight:500;color:var(--muted);text-align:left;padding:8px 10px;border-bottom:1px solid var(--rule2);white-space:nowrap}
 td{padding:7px 10px;border-bottom:1px solid var(--rule);vertical-align:top}
 th.r,td.r{text-align:right;white-space:nowrap}
@@ -180,7 +180,7 @@ textarea{width:100%;min-height:210px;font:13px/1.45 "IBM Plex Sans",system-ui,sa
         <summary><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><h2>Log sources behind the estimate</h2></summary>
         <p class="lede">Only sources needed by a ticked use case. Rates and event sizes are estimates for the chosen scenario.</p>
         <div class="tablewrap"><table>
-          <thead><tr><th>Log source</th><th>Needed by</th><th class="r">Rate</th><th class="r">Events/day</th><th class="r">Volume/day</th><th class="r">Share</th></tr></thead>
+          <thead><tr><th>Log source</th><th>Collected via</th><th>Needed by</th><th class="r">Rate</th><th class="r">Events/day</th><th class="r">Volume/day</th><th class="r">Share</th></tr></thead>
           <tbody id="src"></tbody>
         </table></div>
       </details>
@@ -200,6 +200,7 @@ textarea{width:100%;min-height:210px;font:13px/1.45 "IBM Plex Sans",system-ui,sa
           <li>The brute-force and spraying rules use FortiSIEM logon event-type groups. Their Windows members were checked in a 7.6.0 system (Device and Domain Logon Failure and Success); the Windows groups contain no Entra or Office 365 event types, while Entra sign-in success and failure belong to the Application Logon groups.</li>
           <li>Sudden User Location Change has no log event types in its rule. It fires on an event from FortiSIEM's identity engine, whose inputs are the successful-logon events listed in /opt/phoenix/config/identityDef.xml: Entra interactive sign-ins (added in 7.6), Office 365 logins, VPN logons from FortiGate SSL VPN, FortiClient IPsec, Cisco ASA and AnyConnect, Palo Alto GlobalProtect, Citrix NetScaler Gateway and Juniper Secure Access, FortiGate logins, RADIUS and AAA servers (Microsoft NPS, Cisco ACS, FortiAuthenticator), Okta, AWS, Google Workspace and Salesforce. Other VPN vendors, such as Check Point or Zscaler, can be added to the file. The two Windows login-profile rules also fire on internal events; their inputs are assumed to be Windows logon events, which the public documentation does not confirm.</li>
           <li>Use cases that depend on a product beyond FortiSIEM and native Windows, Entra and Microsoft 365 logs say so under Requires. Entra sign-in log export needs Entra ID P1, which is included in Microsoft 365 E3 and Business Premium.</li>
+          <li>Collection assumes a FortiSIEM Collector in the customer network. Windows sources use the FortiSIEM Windows Agent, which sends over HTTPS 443 to the Collector; agentless WMI collection from the Collector is the alternative. Cloud sources are pulled by the Collector over outbound HTTPS or AMQP, so no inbound ports are needed. Network and Fortinet devices send syslog. Confirm ports and credentials in the FortiSIEM External Systems Configuration Guide for the customer's version.</li>
           <li>The 3 new Linux ITDR rules are not part of these use cases.</li>
         </ul>
       </details>
@@ -371,6 +372,34 @@ window.addEventListener("error",function(e){var d=document.createElement("div");
       R('FortiDeceptor: Successful SAMBA Operations to Decoy',['dc'],'o'),R('FortiDeceptor: Successful FTP/TFTP Operations to Decoy',['dc'],'o'),
       R('FortiDeceptor: IPS Attack to Decoy',['dc'],'o')]}
   ];
+  var WA='FortiSIEM Windows Agent on each server, sending over HTTPS 443 to the Collector (agentless WMI as an alternative)';
+  var HOW={
+    ea:'Entra diagnostic settings stream to Azure Event Hub; the Collector pulls with the Azure Event Hub integration (AMQP, 5671 or 443)',
+    ei:'Entra diagnostic settings stream to Azure Event Hub; the Collector pulls with the Azure Event Hub integration (AMQP, 5671 or 443)',
+    en:'Entra diagnostic settings stream to Azure Event Hub; the Collector pulls with the Azure Event Hub integration (AMQP, 5671 or 443)',
+    eh:'Azure Event Hub; the Collector pulls with the Azure Event Hub integration (AMQP, 5671 or 443)',
+    o3:'Office 365 Management Activity API; the Collector polls over HTTPS 443 using an Entra app registration',
+    a4:WA.replace('each server','each DC'),a6:WA.replace('each server','each DC'),a2:WA.replace('each server','each DC'),a5:WA.replace('each server','each DC'),a1:WA.replace('each server','each DC'),a8:WA.replace('each server','each DC'),
+    ms:WA,pc:WA,sv:WA,
+    s2:WA+'; Sysmon Operational channel',s4:WA+'; PowerShell Operational channel',
+    wpc:WA.replace('each server','each workstation'),wsv:WA.replace('each server','each workstation'),
+    ws2:WA.replace('each server','each workstation')+'; Sysmon Operational channel',ws4:WA.replace('each server','each workstation')+'; PowerShell Operational channel',
+    ca:WA.replace('each server','each CA server')+'; Security log with CA auditing enabled',
+    iis:'FortiSIEM Windows Agent file monitoring of the IIS W3C log files, HTTPS 443 to the Collector',
+    fg:'Syslog from FortiGate, or forwarded by FortiAnalyzer (UDP or TCP 514)',
+    vp:'Syslog from the VPN gateway or network device (UDP or TCP 514); Microsoft NPS through the Windows Agent',
+    fct:'Syslog from FortiClient or FortiClient EMS (UDP or TCP 514)',
+    fac:'Syslog from FortiAuthenticator (UDP or TCP 514)',
+    dc:'Syslog from FortiDeceptor (UDP or TCP 514)'
+  };
+  function howShort(id){var t=HOW[id]||'';
+    if(id==='vp')return 'Syslog (514); NPS via Windows Agent';
+    if(t.indexOf('file monitoring')>=0)return 'Windows Agent, IIS log files (HTTPS 443)';
+    if(t.indexOf('FortiSIEM Windows Agent')===0)return 'Windows Agent (HTTPS 443) or WMI';
+    if(t.indexOf('Event Hub')>=0)return 'Azure Event Hub pull (AMQP 5671/443)';
+    if(t.indexOf('Management Activity API')>=0)return 'O365 Management API pull (HTTPS 443)';
+    if(t.indexOf('Syslog')===0)return 'Syslog (UDP/TCP 514)';
+    return t}
   var SRCNAMES={ea:'Entra audit',ei:'Entra sign-ins',eh:'Azure Event Hub',o3:'O365 API',en:'Entra non-interactive',a4:'DC accounts',a6:'DC 5136',a2:'DC Kerberos',a5:'DC 4662',a1:'DC logons',a8:'DC 4776',ms:'Server logons',ca:'CA audit',iis:'IIS',pc:'process creation',s2:'Sysmon 10',sv:'System 7045',s4:'PowerShell 4104',wpc:'process creation (WS)',ws2:'Sysmon 10 (WS)',wsv:'System 7045 (WS)',ws4:'PowerShell 4104 (WS)',fg:'FortiGate (SOCaaS, not counted)',vp:'VPN and admin auth (other vendors)',fct:'FortiClient',fac:'FortiAuthenticator',dc:'FortiDeceptor'};
 
   var G={};
@@ -531,10 +560,10 @@ window.addEventListener("error",function(e){var d=document.createElement("div");
       var by=UC.filter(function(u){return sel[u.id]&&ucAvailable(u)&&u.src.indexOf(id)>=0}).map(function(u){return u.t}).join(', ');
       var per={user:'user',tenant:'tenant',server:'server',member:'member server',ws:'workstation',ca:'CA server'}[s.drv];
       var name=s.name+((id==='pc'||id==='wpc')?(G.pc==='4688'?' (Security 4688)':' (Sysmon 1)'):'');
-      return '<tr class="'+(s.free?'free':'')+'"><td>'+name+'</td><td><span class="s">'+by+'</span></td>'+
+      return '<tr class="'+(s.free?'free':'')+'"><td>'+name+'</td><td><span class="s" title="'+(HOW[id]||'')+'">'+howShort(id)+'</span></td><td><span class="s">'+by+'</span></td>'+
         '<td class="r">'+n1(s.rate[G.sc])+' / '+per+(s.dc&&G.dcmult?' / DC':'')+'</td><td class="r">'+n0(e)+'</td><td class="r">'+vol(m)+'</td>'+
         '<td class="r">'+(s.free?'not counted':(T.mb>0?(m/T.mb*100).toFixed(0)+'%':'0%'))+'</td></tr>';
-    }).join(''):'<tr><td colspan="6">Tick a use case to see the log sources it needs.</td></tr>';
+    }).join(''):'<tr><td colspan="7">Tick a use case to see the log sources it needs.</td></tr>';
 
     // summary
     var envTxt={hybrid:'hybrid (Entra ID and Active Directory)',cloud:'Entra ID only',onprem:'Active Directory only'}[G.env];
@@ -549,7 +578,7 @@ window.addEventListener("error",function(e){var d=document.createElement("div");
     if(!ids.length)lines.push('- none');
     ids.forEach(function(id){var s=SRC[id],e=events(id),m=e*kb(id)/1000;
       var nm=s.name+((id==='pc'||id==='wpc')?(G.pc==='4688'?' (Security 4688)':' (Sysmon 1)'):'');
-      lines.push('- '+nm+': '+n0(e)+' events/day, '+vol(m)+'/day'+(s.free?' (not counted)':''));});
+      lines.push('- '+nm+': '+n0(e)+' events/day, '+vol(m)+'/day'+(s.free?' (not counted)':''));if(HOW[id])lines.push('  Collected via: '+HOW[id]);});
     lines.push('','New 7.6.0 ITDR rules covered: '+covered57+' of 57.','Rates and event sizes are estimates; validate the largest sources with a pilot before committing.');
     $('#sum').value=lines.join('\n');
   }

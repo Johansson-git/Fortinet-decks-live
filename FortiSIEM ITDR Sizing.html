@@ -545,6 +545,11 @@ window.addEventListener("error",function(e){var d=document.createElement("div");
       'Stored over '+n0(G.retention)+' days: about '+gbf(gb*G.ratio/100*G.retention)+' GB at '+n0(G.ratio)+'% of raw.'+(T.fmb>0?' FortiGate VPN and admin authentication ('+vol(T.fmb)+'/day) is covered by SOCaaS and not included.':''),'',
       'Use cases:'];
     UC.forEach(function(u){if(sel[u.id]&&ucAvailable(u)){var cov=0,tot=0;u.rules.forEach(function(r){var w=r.w||1;tot+=w;for(var i=0;i<r.src.length;i++)if(act[r.src[i]]){cov+=w;break}});lines.push('- '+u.t+': '+cov+' of '+tot+' rules'+(u.est?' (estimate)':''));if(u.req)lines.push('  Requires: '+u.req)}});
+    lines.push('','Log sources collected:');
+    if(!ids.length)lines.push('- none');
+    ids.forEach(function(id){var s=SRC[id],e=events(id),m=e*kb(id)/1000;
+      var nm=s.name+((id==='pc'||id==='wpc')?(G.pc==='4688'?' (Security 4688)':' (Sysmon 1)'):'');
+      lines.push('- '+nm+': '+n0(e)+' events/day, '+vol(m)+'/day'+(s.free?' (not counted)':''));});
     lines.push('','New 7.6.0 ITDR rules covered: '+covered57+' of 57.','Rates and event sizes are estimates; validate the largest sources with a pilot before committing.');
     $('#sum').value=lines.join('\n');
   }

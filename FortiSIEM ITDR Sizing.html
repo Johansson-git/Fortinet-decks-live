@@ -60,24 +60,37 @@ h2{font-size:18px;font-weight:600;margin:0 0 4px}
 @media (max-width:980px){.layout{grid-template-columns:minmax(0,1fr)}}
 
 /* use cases */
-.uc{display:grid;grid-template-columns:28px minmax(0,1fr) 180px;gap:6px 14px;padding:14px 14px 12px;background:var(--surface);border:1px solid var(--rule);border-left:5px solid var(--off);border-radius:6px;margin-bottom:10px}
+.grp{margin:0 0 16px}
+.grp-h{display:flex;align-items:baseline;gap:10px;margin:0 0 6px;padding:0 2px}
+.grp-h h3{font-size:12.5px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0}
+.grp-h .gs{margin-left:auto;font-size:13px;color:var(--muted);white-space:nowrap}
+.grp-h .gs b{color:var(--ink);font-weight:600}
+.uc{background:var(--surface);border:1px solid var(--rule);border-left:4px solid var(--off);border-radius:5px;margin-bottom:4px}
 .uc.sel{border-left-color:var(--on)}
-.uc.na{opacity:.55}
-.uc input[type=checkbox]{width:18px;height:18px;margin:3px 0 0;cursor:pointer;accent-color:var(--on)}
-.uc .t{font-weight:600;font-size:16px;line-height:1.3;cursor:pointer}
-.uc .d{font-size:13.5px;color:var(--muted);margin:3px 0 7px;max-width:62ch}
+.uc.na .row{opacity:.55}
+.row{display:grid;grid-template-columns:20px minmax(0,1fr) auto 24px;align-items:center;gap:10px;padding:6px 8px 6px 10px;min-height:40px}
+.row input[type=checkbox]{width:17px;height:17px;margin:0;cursor:pointer;accent-color:var(--on)}
+.row .t{all:unset;box-sizing:border-box;cursor:pointer;font-weight:600;font-size:14.5px;line-height:1.3;display:flex;flex-wrap:wrap;align-items:center;gap:3px 8px;min-width:0;border-radius:3px}
+.row .t:focus-visible,.exp:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.badge{font-size:11.5px;font-weight:500;padding:0 6px;border-radius:3px;background:var(--need-soft);color:var(--ink);white-space:nowrap;line-height:1.65}
+.badge.na{background:transparent;border:1px solid var(--rule2);color:var(--muted)}
+.nums{display:grid;grid-template-columns:auto 76px 64px;align-items:center;gap:10px}
+.nums .cov{font-size:12.5px;color:var(--muted);white-space:nowrap;text-align:right}
+.nums .val{font-size:14.5px;font-weight:600;text-align:right;white-space:nowrap}
+.nums .cb{height:6px;background:var(--rule);border-radius:3px;overflow:hidden}
+.nums .cb i{display:block;height:100%;background:var(--bar)}
+.exp{all:unset;box-sizing:border-box;cursor:pointer;width:24px;height:24px;display:flex;align-items:center;justify-content:center;color:var(--muted);border-radius:4px}
+.exp svg{transition:transform .15s}
+.uc.open .exp svg{transform:rotate(90deg)}
+.more{padding:2px 14px 12px 40px;border-top:1px solid var(--rule)}
+.more .d{font-size:13.5px;color:var(--muted);margin:8px 0;max-width:70ch}
+.more .cl{font-size:12.5px;color:var(--muted);margin:8px 0 0}
+.more details{margin-top:8px}
+.more summary{cursor:pointer;font-size:13px;color:var(--muted)}
 .chips{display:flex;flex-wrap:wrap;gap:5px}
 .chip{font-size:12px;padding:1px 7px;border-radius:3px;border:1px solid var(--rule2);color:var(--muted);white-space:nowrap}
 .chip.free{border-style:dashed}
 .chip.gone{text-decoration:line-through;opacity:.6}
-.cost{text-align:right;font-size:13px;color:var(--muted)}
-.cost b{display:block;font-size:18px;color:var(--ink);font-weight:600}
-.cost span[id^="cl-"]{display:block;line-height:1.35}
-.cost .cb{height:6px;background:var(--rule);border-radius:3px;overflow:hidden;margin:6px 0 4px}
-.cost .cb i{display:block;height:100%;background:var(--bar)}
-.cov{font-size:12.5px;color:var(--muted)}
-.uc details{grid-column:2 / -1;margin-top:2px}
-.uc summary{cursor:pointer;font-size:13px;color:var(--muted)}
 .rl{list-style:none;margin:8px 0 0;padding:0;font-size:13px;columns:2 300px;column-gap:24px}
 .rl li{break-inside:avoid;padding:3px 0 3px 18px;position:relative;line-height:1.35}
 .rl li::before{content:"";position:absolute;left:2px;top:8px;width:8px;height:8px;border-radius:50%;background:var(--on)}
@@ -86,10 +99,22 @@ h2{font-size:18px;font-weight:600;margin:0 0 4px}
 .rl .need{color:var(--need);font-size:12px}
 .flag{display:inline-block;margin-top:6px;font-size:12.5px;padding:2px 8px;border-radius:3px;background:var(--need-soft);color:var(--ink)}
 .flag[hidden]{display:none}
-.req{font-size:12.5px;margin-top:6px;line-height:1.4}
+.req{font-size:12.5px;margin-top:8px;line-height:1.4}
 .req b{font-weight:600}
-@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
-@media (max-width:620px){.uc{grid-template-columns:24px minmax(0,1fr)}.cost{grid-column:2;text-align:left}.cost .cb{max-width:220px}}
+.dsec>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px}
+.dsec>summary::-webkit-details-marker{display:none}
+.dsec>summary h2{margin:0}
+.dsec>summary svg{flex-shrink:0;color:var(--muted);transition:transform .15s}
+.dsec[open]>summary svg{transform:rotate(90deg)}
+.dsec>summary:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.dsec[open]>summary{margin-bottom:10px}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto;transition:none!important}}
+@media (max-width:620px){
+  .row{grid-template-columns:20px minmax(0,1fr) 24px}
+  .nums{grid-column:2 / 3;grid-row:2;grid-template-columns:auto auto 64px;justify-content:start}
+  .more{padding-left:14px}
+  .grp-h{flex-wrap:wrap}
+}
 
 /* side */
 .side{position:sticky;top:calc(14px + env(safe-area-inset-top,0px));display:grid;gap:14px}
@@ -148,25 +173,25 @@ textarea{width:100%;min-height:210px;font:13px/1.45 "IBM Plex Sans",system-ui,sa
   <div class="layout">
     <main>
       <h2>Use cases</h2>
-      <p class="lede">Tick what the customer wants to detect. Shared log sources are counted once and their volume is split evenly between the ticked use cases that need them, so the use-case figures add up to the total.</p>
+      <p class="lede">Tick what the customer wants to detect. Shared log sources are counted once and their volume is split evenly between the ticked use cases that need them, so the use-case figures add up to the total. Click a use case for its log sources, requirements and rules.</p>
       <div id="ucs"></div>
 
-      <section class="sec">
-        <h2>Log sources behind the estimate</h2>
+      <details class="sec dsec">
+        <summary><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><h2>Log sources behind the estimate</h2></summary>
         <p class="lede">Only sources needed by a ticked use case. Rates and event sizes are estimates for the chosen scenario.</p>
         <div class="tablewrap"><table>
           <thead><tr><th>Log source</th><th>Needed by</th><th class="r">Rate</th><th class="r">Events/day</th><th class="r">Volume/day</th><th class="r">Share</th></tr></thead>
           <tbody id="src"></tbody>
         </table></div>
-      </section>
+      </details>
 
-      <section class="sec">
-        <h2>Summary to paste into a proposal</h2>
+      <details class="sec dsec">
+        <summary><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><h2>Summary to paste into a proposal</h2></summary>
         <textarea id="sum" readonly aria-label="Summary text"></textarea>
-      </section>
+      </details>
 
-      <section class="sec foot">
-        <h2 style="color:var(--ink)">How this is built</h2>
+      <details class="sec foot dsec">
+        <summary><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><h2 style="color:var(--ink)">How this is built</h2></summary>
         <ul>
           <li>Every rule listed under a use case was read from the FortiSIEM 7.6.0 rule definitions (crawled 5 October 2026), including which event types it reads. A rule counts as covered when at least one source it accepts is collected.</li>
           <li>Rates per user, per server and per tenant are estimates, not measurements. Low, Medium and High change rates, computers per user, server share and the burst factor. Measure the largest sources before quoting: process creation on servers and member-server logons.</li>
@@ -177,7 +202,7 @@ textarea{width:100%;min-height:210px;font:13px/1.45 "IBM Plex Sans",system-ui,sa
           <li>Use cases that depend on a product beyond FortiSIEM and native Windows, Entra and Microsoft 365 logs say so under Requires. Entra sign-in log export needs Entra ID P1, which is included in Microsoft 365 E3 and Business Premium.</li>
           <li>The 3 new Linux ITDR rules are not part of these use cases.</li>
         </ul>
-      </section>
+      </details>
     </main>
 
     <aside class="side" aria-label="Settings">
@@ -407,16 +432,32 @@ window.addEventListener("error",function(e){var d=document.createElement("div");
   }
   function selIds(){var o={};UC.forEach(function(u){o[u.id]=$('#u-'+u.id).checked});return o}
 
+  var GROUPS=[['cloud','Cloud identity',['priv','tamper','mfa']],['cred','Credential attacks',['travel','brute','spray']],['ad','Active Directory attacks',['kerb','dcsync','adcs']],['host','Host attacks',['dump','lat']],['add','Add-ons',['decoy']]];
+  var BADGE={travel:'Optional VPN logs',brute:'Optional VPN logs',dump:'Requires Sysmon',adcs:'AD CS only',decoy:'Requires FortiDeceptor'};
+  var CHEV='<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  (function(){var seen={};GROUPS.forEach(function(g){g[2].forEach(function(id){seen[id]=1})});var rest=UC.filter(function(u){return !seen[u.id]}).map(function(u){return u.id});if(rest.length)GROUPS.push(['other','Other',rest])})();
+  function ucById(id){for(var i=0;i<UC.length;i++)if(UC[i].id===id)return UC[i]}
+  function row(u){
+    var chips=u.src.filter(function(s){return !SRC[s].opt||['soc','vpn','fct','fac'].indexOf(SRC[s].opt)>=0}).map(function(s){return '<span class="chip'+(SRC[s].free?' free':'')+'" data-s="'+s+'">'+SRCNAMES[s]+'</span>'}).join('');
+    return '<div class="uc" id="b-'+u.id+'"><div class="row">'+
+      '<input type="checkbox" id="u-'+u.id+'"'+(u.on?' checked':'')+' aria-label="Include '+u.t+'">'+
+      '<button type="button" class="t" id="x-'+u.id+'" data-x="'+u.id+'" aria-expanded="false" aria-controls="more-'+u.id+'"><span>'+u.t+'</span>'+(BADGE[u.id]?'<span class="badge">'+BADGE[u.id]+'</span>':'')+'<span class="badge na" id="na-'+u.id+'" hidden></span></button>'+
+      '<div class="nums"><span class="cov" id="cv-'+u.id+'"></span><span class="val" id="c-'+u.id+'">0</span><div class="cb"><i id="cb-'+u.id+'"></i></div></div>'+
+      '<button type="button" class="exp" data-x="'+u.id+'" tabindex="-1" aria-hidden="true">'+CHEV+'</button></div>'+
+      '<div class="more" id="more-'+u.id+'" hidden><div class="d" id="d-'+u.id+'">'+u.d+'</div><div class="chips">'+chips+'</div>'+
+      (u.req?'<div class="req"><b>Requires:</b> '+u.req+'</div>':'')+(u.flag?'<div class="flag">'+u.flag+'</div>':'')+
+      '<p class="cl" id="cl-'+u.id+'"></p><details><summary id="rs-'+u.id+'">Rules</summary><ul class="rl" id="rl-'+u.id+'"></ul></details></div></div>';
+  }
   function build(){
-    $('#ucs').innerHTML=UC.map(function(u){
-      var chips=u.src.filter(function(s){return !SRC[s].opt||['soc','vpn','fct','fac'].indexOf(SRC[s].opt)>=0}).map(function(s){return '<span class="chip'+(SRC[s].free?' free':'')+'" data-s="'+s+'">'+SRCNAMES[s]+'</span>'}).join('');
-      return '<div class="uc" id="b-'+u.id+'">'+
-        '<input type="checkbox" id="u-'+u.id+'"'+(u.on?' checked':'')+' aria-describedby="d-'+u.id+'">'+
-        '<div><label class="t" for="u-'+u.id+'">'+u.t+'</label><div class="d" id="d-'+u.id+'">'+u.d+'</div><div class="chips">'+chips+'</div>'+(u.req?'<div class="req"><b>Requires:</b> '+u.req+'</div>':'')+
-        (u.flag?'<div class="flag">'+u.flag+'</div>':'')+'<div class="flag" id="na-'+u.id+'" hidden></div></div>'+
-        '<div class="cost"><b id="c-'+u.id+'">0</b><span id="cl-'+u.id+'"></span><div class="cb"><i id="cb-'+u.id+'"></i></div><span class="cov" id="cv-'+u.id+'"></span></div>'+
-        '<details><summary id="rs-'+u.id+'">Rules</summary><ul class="rl" id="rl-'+u.id+'"></ul></details></div>';
+    $('#ucs').innerHTML=GROUPS.map(function(g){
+      return '<section class="grp" aria-labelledby="gh-'+g[0]+'"><div class="grp-h"><h3 id="gh-'+g[0]+'">'+g[1]+'</h3><span class="gs" id="gs-'+g[0]+'"></span></div>'+
+        g[2].map(function(id){return row(ucById(id))}).join('')+'</section>';
     }).join('');
+    $('#ucs').addEventListener('click',function(e){
+      var b=e.target.closest('[data-x]'); if(!b)return;
+      var id=b.getAttribute('data-x'), box=$('#b-'+id), m=$('#more-'+id), open=m.hidden;
+      m.hidden=!open; box.classList.toggle('open',open); $('#x-'+id).setAttribute('aria-expanded',String(open));
+    });
   }
 
   function srcLabel(ids){
@@ -453,11 +494,11 @@ window.addEventListener("error",function(e){var d=document.createElement("div");
       box.classList.toggle('sel',on); box.classList.toggle('na',!ok);
       $('#u-'+u.id).disabled=!ok;
       var na=$('#na-'+u.id);
-      if(!ok){na.hidden=false;na.textContent=u.needsAdcs?'Not available: AD CS needs Active Directory.':'Not available in this environment.'}else na.hidden=true;
+      if(!ok){na.hidden=false;na.textContent=u.needsAdcs?'Needs Active Directory':'Not available here'}else na.hidden=true;
       Array.prototype.forEach.call(box.querySelectorAll('.chip'),function(c){var s=c.getAttribute('data-s');if(SRC[s].opt){c.hidden=!avail(s)}else{c.classList.toggle('gone',!avail(s))}});
       var m=marg[u.id], f=fair[u.id], shown=on?f:m;
-      set('c-'+u.id,ok?(on?vol(f):'+ '+vol(m)):'—');
-      set('cl-'+u.id,ok?(on?'per day, fair share. Removing it saves '+vol(m)+'. '+vol(stand[u.id])+' on its own':'per day if added. '+vol(stand[u.id])+' on its own'):'');
+      set('c-'+u.id,ok?(on?vol(f):(m<0.005?'no extra':'+ '+vol(m))):'—');
+      set('cl-'+u.id,ok?(on?vol(f)+' per day as its fair share of shared sources. Removing it saves '+vol(m)+'; on its own it needs '+vol(stand[u.id])+'.':(m<0.005?'Adds no extra volume if ticked, because its sources are already collected;':'Adds '+vol(m)+' per day if ticked;')+' on its own it needs '+vol(stand[u.id])+'.'):(u.needsAdcs?'Not available: AD CS needs Active Directory.':'Not available in this environment.'));
       $('#cb-'+u.id).style.width=(ok&&maxMarg>0?shown/maxMarg*100:0)+'%';
       var tot=0,cov=0,html='';
       u.rules.forEach(function(r){
@@ -472,9 +513,11 @@ window.addEventListener("error",function(e){var d=document.createElement("div");
       });
       $('#rl-'+u.id).innerHTML=html;
       set('rs-'+u.id,'Rules: '+cov+' of '+tot+' covered by the current selection');
-      set('cv-'+u.id,on?cov+' of '+tot+' rules covered':tot+' rules');
+      set('cv-'+u.id,on?cov+'/'+tot+' rules':tot+' rules');
     });
 
+    GROUPS.forEach(function(g){var mb=0,n=0,okn=0;g[2].forEach(function(id){var u=ucById(id),ok=ucAvailable(u);if(ok)okn++;if(sel[id]&&ok){n++;mb+=fair[id]}});
+      var el=$('#gs-'+g[0]); if(el)el.innerHTML=n?'<b>'+vol(mb)+'</b> &middot; '+n+' of '+g[2].length+' selected':n+' of '+g[2].length+' selected';});
     var gb=T.mb/1000, avg=T.ev/86400, biz=G.bizHours>0?T.ev*(G.bizShare/100)/(G.bizHours*3600):0, peak=biz*G.burst;
     set('gb',gbf(gb)+' GB');
     set('st-eps',peak<10?peak.toFixed(1):n0(peak)); set('st-ev',n0(T.ev));
